@@ -1,0 +1,2400 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BrandDNA - AI Brand Identity Forge & Strategist</title>
+    
+    <!-- CDNs for styling, icons, and running Python in the browser -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/brython/3.12.0/brython.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/brython/3.12.0/brython_stdlib.min.js"></script>
+    
+    <!-- Google Font for default Inter UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+      /* Custom Animations */
+      @keyframes float-anim {
+        0% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-8px) rotate(1deg); }
+        100% { transform: translateY(0px) rotate(0deg); }
+      }
+      @keyframes hue-anim {
+        0% { filter: hue-rotate(0deg); }
+        50% { filter: hue-rotate(180deg); }
+        100% { filter: hue-rotate(360deg); }
+      }
+      @keyframes pulse-anim {
+        0% { opacity: 0.6; }
+        50% { opacity: 1; }
+        100% { opacity: 0.6; }
+      }
+      .logo-anim-float {
+        animation: float-anim 4s ease-in-out infinite;
+      }
+      .logo-anim-cycle {
+        animation: hue-anim 6s linear infinite;
+      }
+      .logo-anim-fade {
+        animation: pulse-anim 2s ease-in-out infinite;
+      }
+      .tab-active {
+        border-color: #0F172A;
+        color: #0F172A;
+        font-weight: 700;
+      }
+
+      /* Print Preview and Physical Printing System */
+      .print-page-shadow {
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.1), 0 2px 8px -1px rgba(0, 0, 0, 0.05);
+      }
+      
+      @media print {
+        /* Hide all interactive app layout containers */
+        #global-header, #main-app-container, #print-control-bar, .copy-hex-btn, .anim-sel-p, .anim-sel-s, #btn-challenge-audit, #btn-generate-img-p, #btn-generate-img-s, .mockup-logo-toggle {
+          display: none !important;
+        }
+        
+        body, html {
+          background: #ffffff !important;
+          color: #000000 !important;
+          width: 100% !important;
+          height: auto !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        
+        #print-view-viewport {
+          display: block !important;
+          position: static !important;
+          background: #ffffff !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          box-shadow: none !important;
+          overflow: visible !important;
+          z-index: auto !important;
+        }
+        
+        #print-bible-document {
+          max-w: 100% !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-shadow: none !important;
+        }
+        
+        .print-page {
+          page-break-after: always !important;
+          break-after: page !important;
+          box-shadow: none !important;
+          border: none !important;
+          padding: 20mm 15mm !important;
+          margin: 0 !important;
+          min-height: auto !important;
+          height: 100vh !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: space-between !important;
+          background: #ffffff !important;
+          color: #000000 !important;
+        }
+        
+        /* Force browser colors in PDF */
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+      }
+    </style>
+
+    <script>
+      // Tailwind configuration
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              slate: {
+                950: '#020617',
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+              display: ['Space Grotesk', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+  </head>
+  
+  <body class="bg-[#F8FAFC] text-slate-900 min-h-screen flex flex-col antialiased" onload="brython()">
+    
+    <!-- Top Global Header -->
+    <header id="global-header" class="bg-slate-950 text-white border-b border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-50 shadow-md">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-sm bg-gradient-to-tr from-amber-500 to-red-600 flex items-center justify-center font-bold font-display text-white shadow-md">
+          Py
+        </div>
+        <div>
+          <h1 class="text-sm font-bold uppercase tracking-widest font-display bg-gradient-to-r from-amber-400 to-red-400 bg-clip-text text-transparent">BrandDNA</h1>
+          <span class="text-[9px] font-mono text-slate-400 uppercase tracking-wider block">Python Core Engine</span>
+        </div>
+      </div>
+      
+      <!-- Header Actions & Clock -->
+      <div class="flex items-center space-x-3">
+        <!-- Print Layout Button (Hidden unless brand loaded) -->
+        <button id="header-btn-print-toggle" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold uppercase tracking-wider rounded-sm font-mono transition flex items-center shadow border border-slate-700">
+          <i data-lucide="printer" class="w-3.5 h-3.5 mr-1.5"></i>
+          Print Layout
+        </button>
+
+        <!-- Download PDF Button (Hidden unless brand loaded) -->
+        <button id="header-btn-download-pdf" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold uppercase tracking-wider rounded-sm font-mono transition flex items-center shadow border border-slate-700">
+          <i data-lucide="file-down" class="w-3.5 h-3.5 mr-1.5"></i>
+          Download PDF
+        </button>
+
+        <!-- Share Brand Button (Hidden unless brand loaded) -->
+        <button id="header-btn-share" class="hidden px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-red-600 hover:from-amber-600 hover:to-red-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-sm font-mono transition flex items-center shadow-md">
+          <i data-lucide="share-2" class="w-3.5 h-3.5 mr-1.5"></i>
+          Share Brand
+        </button>
+
+        <div class="hidden md:flex items-center space-x-6 text-xs">
+          <div class="flex items-center space-x-1.5 font-mono text-slate-400">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>DEV_SERVER: ACTIVE</span>
+          </div>
+          <div class="border-l border-slate-800 h-4"></div>
+          <div class="flex items-center space-x-2 font-mono text-slate-300">
+            <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span id="live-clock">UTC: LOADING</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Container Layout -->
+    <main id="main-app-container" class="flex-1 max-w-[1700px] w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- LEFT COLUMN: INPUT PARAMETERS (lg:col-span-4) -->
+      <section class="lg:col-span-4 space-y-6">
+        <div class="bg-white border border-slate-200 rounded-sm p-5 shadow-sm space-y-5">
+          <div class="border-b border-slate-100 pb-3 flex justify-between items-center">
+            <div>
+              <h2 class="text-xs font-bold uppercase tracking-widest text-slate-500">01. Setup Parameters</h2>
+              <p class="text-[10px] text-slate-400 font-mono">Synthesize your identity DNA</p>
+            </div>
+            <i data-lucide="sliders" class="w-4 h-4 text-slate-400"></i>
+          </div>
+
+          <!-- Quickstart Presets -->
+          <div class="space-y-1.5">
+            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider font-mono">Quickload Presets</span>
+            <div class="grid grid-cols-3 gap-1.5">
+              <button id="preset-solstice" class="px-2 py-1 text-[9px] font-mono font-bold uppercase border border-slate-200 bg-slate-50 hover:bg-slate-100 rounded-sm transition text-slate-600 truncate">Solstice</button>
+              <button id="preset-aura" class="px-2 py-1 text-[9px] font-mono font-bold uppercase border border-slate-200 bg-slate-50 hover:bg-slate-100 rounded-sm transition text-slate-600 truncate">Aura Coffee</button>
+              <button id="preset-hyperion" class="px-2 py-1 text-[9px] font-mono font-bold uppercase border border-slate-200 bg-slate-50 hover:bg-slate-100 rounded-sm transition text-slate-600 truncate">Hyperion</button>
+            </div>
+          </div>
+
+          <!-- Form inputs -->
+          <div class="space-y-4">
+            <!-- Company Name -->
+            <div class="space-y-1">
+              <label for="input-company-name" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 block">Company Name</label>
+              <input type="text" id="input-company-name" placeholder="e.g. Solstice Apparel" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-sm focus:outline-none focus:border-slate-800 transition" />
+            </div>
+
+            <!-- Industry -->
+            <div class="space-y-1">
+              <label for="input-industry" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 block">Industry Sector</label>
+              <input type="text" id="input-industry" placeholder="e.g. Sustainable Fashion" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-sm focus:outline-none focus:border-slate-800 transition" />
+            </div>
+
+            <!-- Mission Statement -->
+            <div class="space-y-1">
+              <label for="input-mission" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 block">Mission & Vision Statement</label>
+              <textarea id="input-mission" rows="3" placeholder="Describe what makes the brand unique, its vision, values, and offerings." class="w-full text-xs px-3 py-2 border border-slate-200 rounded-sm focus:outline-none focus:border-slate-800 transition leading-relaxed"></textarea>
+            </div>
+
+            <!-- Target Audience -->
+            <div class="space-y-1">
+              <label for="input-target" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 block">Target Audience</label>
+              <input type="text" id="input-target" placeholder="e.g. Eco-conscious urban professionals" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-sm focus:outline-none focus:border-slate-800 transition" />
+            </div>
+
+            <!-- Brand Values list manager -->
+            <div class="space-y-2">
+              <label class="text-[10px] font-bold uppercase tracking-wider text-slate-700 block">Brand Values & DNA Traits</label>
+              <div class="flex space-x-2">
+                <input type="text" id="input-value-tag" placeholder="e.g. Integrity" class="flex-1 text-xs px-3 py-2 border border-slate-200 rounded-sm focus:outline-none focus:border-slate-800 transition" />
+                <button id="btn-add-value" class="px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono text-xs font-bold rounded-sm border border-slate-200 transition">+</button>
+              </div>
+              <div id="values-tags-container" class="flex flex-wrap gap-1.5 pt-1">
+                <!-- Tag elements added here -->
+              </div>
+            </div>
+
+            <!-- Aesthetic Style Selector -->
+            <div class="space-y-1">
+              <label for="select-aesthetic" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 block">Aesthetic Visual Preference</label>
+              <select id="select-aesthetic" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-sm bg-white focus:outline-none focus:border-slate-800 transition font-medium">
+                <option value="Modern Minimalist">Modern Minimalist</option>
+                <option value="Bold Brutalist">Bold Brutalist</option>
+                <option value="Editorial Serif">Editorial Serif</option>
+                <option value="Cyberpunk Technical">Cyberpunk Technical</option>
+                <option value="Warm Organic">Warm Organic</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="pt-3">
+            <button id="btn-synthesize" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-mono font-bold uppercase tracking-widest text-xs rounded-sm transition shadow-md flex items-center justify-center space-x-2">
+              <span id="spinner-synthesize" class="hidden animate-spin inline-block w-4.5 h-4.5 border-2 border-white border-t-transparent rounded-full mr-2"></span>
+              <span id="btn-synthesize-text">SYNTHESIZE BRAND DNA</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Saved Bibles Sidebar / Quick Switcher -->
+        <div class="bg-white border border-slate-200 rounded-sm p-5 shadow-sm space-y-4">
+          <div class="border-b border-slate-100 pb-2 flex justify-between items-center">
+            <span class="text-xs font-bold uppercase tracking-widest text-slate-500 font-display">Saved Bibles Library</span>
+            <i data-lucide="archive" class="w-4 h-4 text-slate-400"></i>
+          </div>
+          <div id="saved-bibles-list" class="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+            <p class="text-xs text-slate-400 italic">No saved brand bibles found in local storage. Generate one to populate your workspace library.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT COLUMN: RESULTS, TABS, VISUALIZERS, & CHAT (lg:col-span-8) -->
+      <section class="lg:col-span-8 space-y-6">
+        
+        <!-- Tab Navigation Bar -->
+        <div id="results-tabs-wrapper" class="hidden bg-white border border-slate-200 rounded-sm p-1 shadow-sm flex flex-wrap gap-1">
+          <button data-tab="blueprint" class="tab-btn flex-1 min-w-[100px] text-center py-2 text-[10px] uppercase font-bold tracking-wider rounded-sm hover:bg-slate-50 transition border-b-2 border-transparent text-slate-400 tab-active">
+            01 Blueprint
+          </button>
+          <button data-tab="colors" class="tab-btn flex-1 min-w-[100px] text-center py-2 text-[10px] uppercase font-bold tracking-wider rounded-sm hover:bg-slate-50 transition border-b-2 border-transparent text-slate-400">
+            02 Color System
+          </button>
+          <button data-tab="typography" class="tab-btn flex-1 min-w-[100px] text-center py-2 text-[10px] uppercase font-bold tracking-wider rounded-sm hover:bg-slate-50 transition border-b-2 border-transparent text-slate-400">
+            03 Typography
+          </button>
+          <button data-tab="logos" class="tab-btn flex-1 min-w-[100px] text-center py-2 text-[10px] uppercase font-bold tracking-wider rounded-sm hover:bg-slate-50 transition border-b-2 border-transparent text-slate-400">
+            04 Logo Emblem
+          </button>
+          <button data-tab="activation" class="tab-btn flex-1 min-w-[100px] text-center py-2 text-[10px] uppercase font-bold tracking-wider rounded-sm hover:bg-slate-50 transition border-b-2 border-transparent text-slate-400">
+            05 Activation
+          </button>
+          <button data-tab="challenge" class="tab-btn flex-1 min-w-[100px] text-center py-2 text-[10px] uppercase font-bold tracking-wider rounded-sm hover:bg-slate-50 transition border-b-2 border-transparent text-slate-400">
+            06 stress audit
+          </button>
+        </div>
+
+        <!-- MAIN VIEWPORT PANELS -->
+        <div id="main-viewport" class="space-y-6">
+          
+          <!-- SPLASH BOARD: Visible when no brand is loaded -->
+          <div id="panel-splash" class="bg-white border border-slate-200 rounded-sm p-12 shadow-sm text-center space-y-6 min-h-[450px] flex flex-col justify-center items-center">
+            <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 shadow-inner">
+              <i data-lucide="dna" class="w-8 h-8 text-slate-700 animate-pulse"></i>
+            </div>
+            <div class="space-y-2 max-w-lg">
+              <h2 class="text-xl font-bold font-display uppercase tracking-tight text-slate-800">PyBrandDNA Strategist Workspace</h2>
+              <p class="text-sm text-slate-500 leading-relaxed">
+                Welcome. Fill out the brand criteria preset on the left side, or load one of the quickstart examples to initialize a comprehensive **Core Brand Bible** fully managed and orchestrated by Python in the browser.
+              </p>
+            </div>
+            <div class="text-[10px] font-mono text-slate-400 border border-slate-100 px-4 py-2 bg-slate-50 rounded-sm">
+              Python 3.10 Core • Brython VM • Standard HTTP Client Integrations
+            </div>
+          </div>
+
+          <!-- TAB CONTENT PANELS (Filled dynamically in Python) -->
+          <div id="panel-content-area" class="hidden space-y-6">
+            <!-- Dynamically generated tab structures will go here -->
+          </div>
+
+        </div>
+
+        <!-- SECONDARY GRID: CHATBOT & INTERACTIVE ASSISTANT -->
+        <div id="assistant-chat-block" class="hidden grid grid-cols-1 md:grid-cols-12 gap-6">
+          <div class="md:col-span-12 bg-white border border-slate-200 rounded-sm shadow-sm flex flex-col overflow-hidden h-[500px]">
+            
+            <!-- Chat Title & Selector -->
+            <div class="bg-slate-950 text-white p-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="flex items-center space-x-2.5">
+                <div class="w-6 h-6 rounded-sm bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-bold font-mono">
+                  AI
+                </div>
+                <div>
+                  <h3 class="text-xs font-bold uppercase tracking-wider font-display">DNA Strategy Consultant</h3>
+                  <span class="text-[8px] font-mono text-slate-400 block">Synthesized context from current brand</span>
+                </div>
+              </div>
+
+              <!-- Persona Toggles -->
+              <div class="flex bg-slate-900 border border-slate-800 p-0.5 rounded-sm">
+                <button id="persona-planner" class="px-2.5 py-1 text-[8px] font-mono font-bold uppercase rounded-sm text-white bg-indigo-600 transition shadow">
+                  Planner
+                </button>
+                <button id="persona-creative" class="px-2.5 py-1 text-[8px] font-mono font-bold uppercase rounded-sm text-slate-400 hover:text-white transition">
+                  Creative
+                </button>
+                <button id="persona-challenger" class="px-2.5 py-1 text-[8px] font-mono font-bold uppercase rounded-sm text-slate-400 hover:text-white transition">
+                  Challenger
+                </button>
+              </div>
+            </div>
+
+            <!-- Messages Stream Area -->
+            <div id="chat-messages-container" class="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50/50">
+              <!-- Default welcome text injected in python -->
+            </div>
+
+            <!-- Input area -->
+            <div class="p-3 bg-white border-t border-slate-200 flex space-x-2.5">
+              <input type="text" id="chat-input" placeholder="Type strategy brief, request image prompts or draft marketing copy..." class="flex-1 text-xs px-3.5 py-2.5 border border-slate-200 rounded-sm focus:outline-none focus:border-slate-800 transition" />
+              <button id="chat-btn-send" class="px-5 bg-slate-900 hover:bg-slate-800 text-white font-mono text-xs font-bold uppercase rounded-sm transition shadow flex items-center justify-center space-x-1">
+                <span>SEND</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+    <!-- PRINT VIEWPORT -->
+    <div id="print-view-viewport" class="hidden min-h-screen bg-slate-100 pt-24 pb-12 px-4 md:px-8 overflow-y-auto">
+      <div id="print-bible-document" class="max-w-4xl mx-auto space-y-8">
+        <!-- Filled dynamically inside Brython -->
+      </div>
+    </div>
+
+    <!-- PRINT CONTROL BAR -->
+    <div id="print-control-bar" class="hidden fixed top-0 left-0 right-0 bg-slate-950 text-white z-[999] px-6 py-4 flex items-center justify-between shadow-lg font-mono text-xs">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center border border-slate-700">
+          <i data-lucide="printer" class="text-amber-400 w-4.5 h-4.5"></i>
+        </div>
+        <div>
+          <span class="font-bold text-xs uppercase tracking-wider block" id="print-control-title">PRINT PREVIEW ACTIVE</span>
+          <span class="text-[9px] text-slate-400 block">7-Page Multi-page Professional Identity Guide</span>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <button id="print-bar-btn-download" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-red-600 hover:from-amber-600 hover:to-red-700 text-white font-mono text-[10px] font-bold uppercase rounded-sm transition shadow flex items-center cursor-pointer">
+          <i data-lucide="printer" class="w-3.5 h-3.5 mr-1.5"></i> PRINT / SAVE AS PDF
+        </button>
+        <button id="print-bar-btn-close" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold uppercase rounded-sm border border-slate-700 transition flex items-center cursor-pointer">
+          <i data-lucide="x" class="w-3.5 h-3.5 mr-1.5"></i> EXIT PREVIEW
+        </button>
+      </div>
+    </div>
+
+    <!-- Style block to allow dynamic fonts injected by Python -->
+    <style id="dynamic-brand-fonts"></style>
+
+    <!-- PYTHON MAIN BRYTHON CODE -->
+    <script type="text/python">
+from browser import document, window, bind, html, aio
+import json
+
+# Define Preset Examples
+PRESETS = {
+    "solstice": {
+        "companyName": "Solstice Apparel",
+        "industry": "Sustainable Fashion",
+        "mission": "Crafting beautiful, circular apparel from regenerated ocean wastes to replace fast-fashion with lifetime garments.",
+        "targetAudience": "Conscious urban professionals (ages 25-45) who value design and eco-integrity.",
+        "brandValues": ["Circular Integrity", "Elevated Design", "Direct Transparency"],
+        "aestheticStyle": "Modern Minimalist"
+    },
+    "aura": {
+        "companyName": "Aura Brew Coffee",
+        "industry": "Artisanal Beverages",
+        "mission": "Ethically sourcing single-origin specialty coffees, roasting with solar power, and celebrating local craft culture.",
+        "targetAudience": "Coffee purists, design lovers, and morning ritual curators.",
+        "brandValues": ["Ethical Sourcing", "Craft Pride", "Solar Roasted"],
+        "aestheticStyle": "Warm Organic"
+    },
+    "hyperion": {
+        "companyName": "Hyperion Systems",
+        "industry": "Software & AI",
+        "mission": "Empowering developers to orchestrate massive neural networks through direct, clean, and visual declarative pipelines.",
+        "targetAudience": "Platform architects, AI engineers, and tech visionaries.",
+        "brandValues": ["Unyielding Power", "Bare-Metal Speed", "Clean Abstraction"],
+        "aestheticStyle": "Cyberpunk Technical"
+    }
+}
+
+# Application Global State
+state = {
+    "current_brand": None,
+    "current_chat_role": "consultant",
+    "chat_history": {
+        "consultant": [],
+        "creative": [],
+        "challenger": []
+    },
+    "selected_anim_style_primary": "none",
+    "selected_anim_style_secondary": "none",
+    "mockup_active_logo": "primary",
+    "logo_view_mode": "standard",
+    "is_generating": False,
+    "is_generating_image_primary": False,
+    "is_generating_image_secondary": False,
+    "is_challenging": False,
+    "is_sending_chat": False,
+    "active_view_tab": "blueprint",
+    "form_values_list": ["Innovative", "User-Centric"],
+    "print_mode_active": False
+}
+
+# --- LOCAL STORAGE UTILS ---
+def get_stored_brands():
+    stored = window.localStorage.getItem("branddna_library")
+    if stored:
+        try:
+            return json.loads(stored)
+        except Exception:
+            return []
+    return []
+
+def save_brand_to_storage(brand):
+    library = get_stored_brands()
+    # Check if exists already, remove to overwrite
+    library = [b for b in library if b["companyName"].lower() != brand["companyName"].lower()]
+    library.insert(0, brand)
+    window.localStorage.setItem("branddna_library", json.dumps(library))
+
+def delete_brand_from_storage(name):
+    library = get_stored_brands()
+    library = [b for b in library if b["companyName"].lower() != name.lower()]
+    window.localStorage.setItem("branddna_library", json.dumps(library))
+
+# --- HELPER: AJAX REQUESTS WITH FETCH ---
+async def py_fetch(url, data):
+    options = {
+        "method": "POST",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": json.dumps(data)
+    }
+    response = await window.fetch(url, options)
+    if response.status != 200:
+        err_data = await response.json()
+        py_err = json.loads(window.JSON.stringify(err_data))
+        raise Exception(py_err.get("error", f"Server returned error code {response.status}"))
+    
+    res_data = await response.json()
+    return json.loads(window.JSON.stringify(res_data))
+
+# --- LIVE CLOCK UPDATE ---
+def update_clock():
+    now = window.Date.new()
+    utc_str = now.toUTCString().replace("GMT", "UTC")
+    document["live-clock"].text = utc_str
+    # schedule next update in 1 second
+    window.setTimeout(update_clock, 1000)
+
+# --- RE-RENDER WORKSPACE DOM ---
+def render_tags():
+    container = document["values-tags-container"]
+    container.innerHTML = ""
+    for val in state["form_values_list"]:
+        tag = html.DIV(
+            className="flex items-center space-x-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-[10px] font-mono font-bold uppercase rounded-sm cursor-pointer"
+        )
+        tag.text = val
+        
+        # Close handle
+        close_btn = html.SPAN(className="ml-1.5 text-slate-400 hover:text-slate-700", style={"fontSize": "11px"})
+        close_btn.text = "×"
+        
+        def remove_tag_handler(ev, v=val):
+            if v in state["form_values_list"]:
+                state["form_values_list"].remove(v)
+            render_tags()
+            
+        close_btn.bind("click", remove_tag_handler)
+        tag <= close_btn
+        container <= tag
+
+def render_saved_library():
+    container = document["saved-bibles-list"]
+    container.innerHTML = ""
+    library = get_stored_brands()
+    if not library:
+        container.innerHTML = '<p class="text-xs text-slate-400 italic">No saved brand bibles found in local storage. Generate one to populate your workspace library.</p>'
+        return
+
+    for item in library:
+        item_wrapper = html.DIV(className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-sm hover:border-slate-800 transition cursor-pointer group")
+        
+        # Details
+        info = html.DIV(className="flex-1 min-w-0 pr-2")
+        title = html.P(className="text-xs font-bold text-slate-800 truncate")
+        title.text = item["companyName"]
+        subtitle = html.SPAN(className="text-[9px] font-mono text-slate-400 block truncate uppercase")
+        subtitle.text = f"{item.get('industry', 'General')} • {item.get('aestheticStyle', 'Modern')}"
+        info <= title
+        info <= subtitle
+        
+        # Delete trigger
+        del_btn = html.BUTTON(className="text-[10px] font-mono text-red-500 hover:text-red-700 font-bold px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition")
+        del_btn.text = "DEL"
+        
+        def delete_item(ev, name=item["companyName"]):
+            ev.stopPropagation()
+            delete_brand_from_storage(name)
+            render_saved_library()
+            if state["current_brand"] and state["current_brand"]["companyName"].lower() == name.lower():
+                state["current_brand"] = None
+                document["panel-splash"].classList.remove("hidden")
+                document["panel-content-area"].classList.add("hidden")
+                document["results-tabs-wrapper"].classList.add("hidden")
+                document["assistant-chat-block"].classList.add("hidden")
+                document["header-btn-share"].classList.add("hidden")
+                document["header-btn-print-toggle"].classList.add("hidden")
+                document["header-btn-download-pdf"].classList.add("hidden")
+            window.lucide.createIcons()
+
+        del_btn.bind("click", delete_item)
+        
+        # Click row to load
+        def load_item(ev, b=item):
+            load_brand_into_workspace(b)
+            
+        item_wrapper.bind("click", load_item)
+        item_wrapper <= info
+        item_wrapper <= del_btn
+        container <= item_wrapper
+
+def load_brand_into_workspace(brand):
+    state["current_brand"] = brand
+    # Update active fonts
+    fonts = brand.get("fonts", {})
+    header_font = fonts.get("headerFont", "Space Grotesk")
+    body_font = fonts.get("bodyFont", "Inter")
+    
+    # Inject Google Fonts link
+    font_link_id = "loaded-google-fonts"
+    existing_link = document.select_one(f"#{font_link_id}")
+    if existing_link:
+        existing_link.remove()
+        
+    font_url = f"https://fonts.googleapis.com/css2?family={header_font.replace(' ', '+')}:wght@400;500;600;700;800&family={body_font.replace(' ', '+')}:wght@300;400;500;600;700&display=swap"
+    link_tag = html.LINK(rel="stylesheet", href=font_url, id=font_link_id)
+    document.select_one("head") <= link_tag
+    
+    # Inject styling rationales
+    style_tag = document["dynamic-brand-fonts"]
+    style_tag.innerHTML = f"""
+        .brand-header-font {{
+            font-family: '{header_font}', 'Space Grotesk', sans-serif !important;
+        }}
+        .brand-body-font {{
+            font-family: '{body_font}', 'Inter', sans-serif !important;
+        }}
+    """
+    
+    # Clear tab active styles
+    for t_btn in document.select(".tab-btn"):
+        t_btn.classList.remove("tab-active")
+        if t_btn.attrs.get("data-tab") == state["active_view_tab"]:
+            t_btn.classList.add("tab-active")
+
+    # Reveal results
+    document["panel-splash"].classList.add("hidden")
+    document["panel-content-area"].classList.remove("hidden")
+    document["results-tabs-wrapper"].classList.remove("hidden")
+    document["assistant-chat-block"].classList.remove("hidden")
+    document["header-btn-share"].classList.remove("hidden")
+    document["header-btn-print-toggle"].classList.remove("hidden")
+    document["header-btn-download-pdf"].classList.remove("hidden")
+    
+    # Re-initialize chat default welcomes
+    reset_chat_history()
+    
+    # Render view contents
+    render_active_tab()
+    render_chat_messages()
+    
+    window.lucide.createIcons()
+
+def reset_chat_history():
+    brand = state["current_brand"]
+    state["chat_history"]["consultant"] = [
+        {"role": "assistant", "content": f"Salutations. I am your Brand Planner and positioning strategist. I am ready to advise you on how {brand['companyName']} can scale operations, conquer the {brand.get('industry', 'general')} industry, or polish your core values."}
+    ]
+    state["chat_history"]["creative"] = [
+        {"role": "assistant", "content": f"Hello! As your Visual Creative Director, I am ready to guide you on refined user-interfaces, typography hierarchies, packaging graphics, and crafting perfect image prompt guidelines for {brand['companyName']}."}
+    ]
+    state["chat_history"]["challenger"] = [
+        {"role": "assistant", "content": f"Let's be real. I am your Strategic Challenger and Devil's Advocate. My sole job is to point out why {brand['companyName']} might crash, what consumer doubts exist, and help you stress-test your assumptions. What do you want to debate first?"}
+    ]
+
+# --- TAB RENDERING LOGIC ---
+def render_active_tab():
+    tab = state["active_view_tab"]
+    brand = state["current_brand"]
+    if not brand: return
+    
+    container = document["panel-content-area"]
+    container.innerHTML = ""
+    
+    if tab == "blueprint":
+        # Tagline, keywords, positioning
+        kw_html = "".join([f'<span class="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-800 font-mono font-bold uppercase text-[10px] rounded-sm tracking-wide">{k}</span>' for k in brand["brandKeywords"]])
+        
+        content = f"""
+        <div class="bg-white border border-slate-200 rounded-sm p-6 space-y-6 shadow-sm">
+            <div class="border-b border-slate-100 pb-3">
+                <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">Core Strategy Board</span>
+                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-tight">01. Identity Blueprint</h3>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Tagline card -->
+                <div class="md:col-span-1 bg-slate-50 border border-slate-100 p-5 rounded-sm flex flex-col justify-between">
+                    <div class="space-y-1">
+                        <span class="text-[9px] text-slate-400 uppercase font-mono tracking-wider block">Cohesive Tagline</span>
+                        <h4 class="text-base font-bold font-display italic text-slate-900 leading-snug">&ldquo;{brand["tagline"]}&rdquo;</h4>
+                    </div>
+                    <span class="text-[8px] font-mono text-slate-400 mt-4 block">BRAND CORE SLOGAN</span>
+                </div>
+                
+                <!-- Keywords and positioning -->
+                <div class="md:col-span-2 space-y-4">
+                    <div class="space-y-2">
+                        <span class="text-[9px] text-slate-400 uppercase font-mono tracking-wider block">Identity Personality Keywords</span>
+                        <div class="flex flex-wrap gap-2">{kw_html}</div>
+                    </div>
+                    <div class="space-y-1.5 pt-1.5 border-t border-slate-100">
+                        <span class="text-[9px] text-slate-400 uppercase font-mono tracking-wider block">Value Proposition & Positioning</span>
+                        <p class="text-xs text-slate-600 leading-relaxed font-sans">{brand["positioningStatement"]}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Strategic Guidelines -->
+            <div class="bg-slate-50 border border-slate-200 p-4 rounded-sm flex flex-col sm:flex-row gap-4 items-start">
+                <div class="p-2 bg-slate-900 text-white rounded-sm">
+                    <i data-lucide="compass" class="w-5 h-5 text-amber-400"></i>
+                </div>
+                <div class="space-y-1 flex-1">
+                    <span class="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-800 block">How to use this blueprint</span>
+                    <p class="text-[11px] text-slate-500 leading-relaxed font-sans">
+                        Deploy these assets on high-level splash screens, investor decks, and general corporate communications. Ensure your tagline is embedded as the core subtitle directly adjacent to the primary logo emblem.
+                    </p>
+                </div>
+            </div>
+        </div>
+        """
+        container.innerHTML = content
+
+    elif tab == "colors":
+        # Cohesive colors palette
+        swatches = ""
+        for idx, color in enumerate(brand["colors"]):
+            swatches += f"""
+            <div class="bg-white border border-slate-200 rounded-sm p-4.5 space-y-4 shadow-sm flex flex-col justify-between hover:border-slate-800 transition">
+                <div class="space-y-1.5">
+                    <span class="text-[8px] font-mono text-slate-400 block uppercase">Swatch 0{idx+1} • {color["role"]}</span>
+                    <h4 class="text-xs font-bold text-slate-800 uppercase tracking-tight truncate">{color["name"]}</h4>
+                </div>
+                
+                <!-- Color Block Preview -->
+                <div class="aspect-video w-full rounded-sm shadow-inner relative group border border-slate-100 flex items-center justify-center cursor-pointer" style="background-color: {color["hex"]}">
+                    <button class="copy-hex-btn opacity-0 group-hover:opacity-100 bg-slate-900/90 text-white font-mono font-bold text-[9px] px-2.5 py-1.5 rounded-sm transition shadow uppercase" data-hex="{color["hex"]}">
+                        COPY HEX
+                    </button>
+                </div>
+                
+                <div class="space-y-2">
+                    <span class="text-[10px] font-mono text-slate-800 font-bold block uppercase">{color["hex"]}</span>
+                    <p class="text-[11px] text-slate-500 leading-relaxed font-sans">{color["usage"]}</p>
+                </div>
+            </div>
+            """
+            
+        content = f"""
+        <div class="space-y-6">
+            <div class="bg-white border border-slate-200 rounded-sm p-5 shadow-sm">
+                <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">Color Palette Matrix</span>
+                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-tight">02. Cohesive Color Swatch System</h3>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                {swatches}
+            </div>
+        </div>
+        """
+        container.innerHTML = content
+        
+        # Bind COPY buttons
+        for btn in document.select(".copy-hex-btn"):
+            def make_copy_hex(hex_val):
+                def copy_func(ev):
+                    ev.stopPropagation()
+                    window.navigator.clipboard.writeText(hex_val)
+                    window.alert(f"Copied Hex code: {hex_val}")
+                return copy_func
+            btn.bind("click", make_copy_hex(btn.attrs.get("data-hex")))
+
+    elif tab == "typography":
+        fonts = brand["fonts"]
+        content = f"""
+        <div class="bg-white border border-slate-200 rounded-sm p-6 space-y-6 shadow-sm">
+            <div class="border-b border-slate-100 pb-3">
+                <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">System Typographies</span>
+                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-tight">03. Typographic Hierarchy Board</h3>
+            </div>
+            
+            <!-- Preview grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- Display font -->
+                <div class="bg-slate-50 border border-slate-200 p-5 rounded-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <span class="text-[9px] font-mono text-slate-400 uppercase">Primary Display Header</span>
+                        <span class="text-[9px] font-mono font-bold text-slate-800 uppercase tracking-wider">{fonts["headerFontCategory"]}</span>
+                    </div>
+                    
+                    <div class="py-4 font-display text-center">
+                        <h4 class="text-xl md:text-2xl font-bold tracking-tight text-slate-900 brand-header-font">{fonts["headerFont"]}</h4>
+                        <span class="text-[10px] text-slate-400 block mt-1.5 uppercase font-mono">Aa Bb Cc Dd Ee Ff Gg 123</span>
+                    </div>
+                    
+                    <div class="space-y-1.5 border-t border-slate-200 pt-3">
+                        <span class="text-[9px] font-mono text-slate-400 block">Header Usage Parameters</span>
+                        <p class="text-[11px] text-slate-600 leading-relaxed font-sans">{fonts["headerUsage"]}</p>
+                    </div>
+                </div>
+                
+                <!-- Body font -->
+                <div class="bg-slate-50 border border-slate-200 p-5 rounded-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <span class="text-[9px] font-mono text-slate-400 uppercase">Primary Body Copy</span>
+                        <span class="text-[9px] font-mono font-bold text-slate-800 uppercase tracking-wider">{fonts["bodyFontCategory"]}</span>
+                    </div>
+                    
+                    <div class="py-4 font-sans text-center">
+                        <p class="text-sm text-slate-700 font-medium brand-body-font">{fonts["bodyFont"]}</p>
+                        <span class="text-[10px] text-slate-400 block mt-1.5 uppercase font-mono">Aa Bb Cc Dd Ee Ff Gg 123</span>
+                    </div>
+                    
+                    <div class="space-y-1.5 border-t border-slate-200 pt-3">
+                        <span class="text-[9px] font-mono text-slate-400 block">Body Copy Parameters</span>
+                        <p class="text-[11px] text-slate-600 leading-relaxed font-sans">{fonts["bodyUsage"]}</p>
+                    </div>
+                </div>
+                
+            </div>
+            
+            <!-- Rationale Block -->
+            <div class="bg-slate-50 border border-slate-200 p-5 rounded-sm space-y-2">
+                <span class="text-[9px] font-mono text-slate-400 block uppercase">Typographic Psychology & Rationale</span>
+                <p class="text-xs text-slate-600 leading-relaxed font-sans">{fonts["fontRationale"]}</p>
+            </div>
+        </div>
+        """
+        container.innerHTML = content
+
+    elif tab == "logos":
+        logos = brand["logoConcepts"]
+        
+        # View selection toggle bar at the top
+        toggle_bar = f"""
+        <div class="bg-white border border-slate-200 rounded-sm p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+            <div>
+                <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">04. Visual Asset Systems</span>
+                <h3 class="text-xs font-bold text-slate-800 uppercase tracking-tight font-display">Logo & Emblem Sandbox</h3>
+            </div>
+            
+            <div class="flex bg-slate-100 p-0.5 rounded-sm border border-slate-200/50">
+                <button id="btn-logo-view-standard" class="px-3.5 py-1.5 text-[10px] font-mono font-bold uppercase rounded-sm transition {'bg-white text-slate-900 shadow-sm font-bold' if state["logo_view_mode"] == 'standard' else 'text-slate-500 hover:text-slate-800'}">
+                    Standard Concepts
+                </button>
+                <button id="btn-logo-view-scalability" class="px-3.5 py-1.5 text-[10px] font-mono font-bold uppercase rounded-sm transition {'bg-white text-slate-900 shadow-sm font-bold' if state["logo_view_mode"] == 'scalability' else 'text-slate-500 hover:text-slate-800'}">
+                    Scalability & Legibility
+                </button>
+            </div>
+        </div>
+        """
+
+        if state["logo_view_mode"] == "standard":
+            # Anim style classes
+            p_anim = ""
+            if state["selected_anim_style_primary"] == "fade": p_anim = "logo-anim-fade"
+            elif state["selected_anim_style_primary"] == "float": p_anim = "logo-anim-float"
+            elif state["selected_anim_style_primary"] == "cycle": p_anim = "logo-anim-cycle"
+            
+            s_anim = ""
+            if state["selected_anim_style_secondary"] == "fade": s_anim = "logo-anim-fade"
+            elif state["selected_anim_style_secondary"] == "float": s_anim = "logo-anim-float"
+            elif state["selected_anim_style_secondary"] == "cycle": s_anim = "logo-anim-cycle"
+
+            # Image generation button states
+            p_img_text = "Generate AI Rendered Image"
+            p_disabled = ""
+            if state["is_generating_image_primary"]:
+                p_img_text = "Synthesizing vector pixel..."
+                p_disabled = "disabled"
+                
+            s_img_text = "Generate AI Rendered Image"
+            s_disabled = ""
+            if state["is_generating_image_secondary"]:
+                s_img_text = "Synthesizing vector pixel..."
+                s_disabled = "disabled"
+
+            # Render display boxes
+            p_logo_box = ""
+            if brand.get("primaryLogoUrl"):
+                p_logo_box = f'<img src="{brand["primaryLogoUrl"]}" alt="Primary Brand Logo" class="w-full h-full object-contain {p_anim}" referrerPolicy="no-referrer" />'
+            else:
+                p_logo_box = f'<div class="w-full h-full flex items-center justify-center {p_anim}">{logos["placeholderPrimarySvg"]}</div>'
+
+            s_logo_box = ""
+            if brand.get("secondaryLogoUrl"):
+                s_logo_box = f'<img src="{brand["secondaryLogoUrl"]}" alt="Secondary Brand Logo" class="w-full h-full object-contain {s_anim}" referrerPolicy="no-referrer" />'
+            else:
+                s_logo_box = f'<div class="w-full h-full flex items-center justify-center {s_anim}">{logos["placeholderSecondarySvg"]}</div>'
+
+            view_content = f"""
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
+                <!-- Primary Logo Layout -->
+                <div class="bg-white border border-slate-200 rounded-sm p-5 shadow-sm space-y-4 flex flex-col justify-between">
+                    <div class="space-y-1">
+                        <span class="text-[9px] font-mono text-slate-400 block uppercase">Concept Alpha • Typographic Logo</span>
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-tight">Primary Brand Identity Logo</h4>
+                    </div>
+                    
+                    <!-- Display Visual Frame -->
+                    <div class="aspect-video rounded-sm bg-slate-50 border border-slate-200 p-6 flex items-center justify-center relative group overflow-hidden shadow-inner">
+                        <div id="primary-logo-preview-box" class="w-full h-full flex items-center justify-center">{p_logo_box}</div>
+                    </div>
+                    
+                    <!-- Motion Controller -->
+                    <div class="flex items-center justify-between bg-slate-50 p-2 border border-slate-200 rounded-sm text-xs">
+                        <span class="font-bold text-[9px] uppercase tracking-wider text-slate-400 font-mono">Logo Motion:</span>
+                        <div class="flex space-x-1">
+                            <button class="anim-sel-p px-2 py-1 text-[9px] font-mono font-bold uppercase rounded-sm border transition {'bg-slate-900 text-white border-slate-900' if state["selected_anim_style_primary"] == 'none' else 'bg-white text-slate-500 border-slate-200'}" data-anim="none">Static</button>
+                            <button class="anim-sel-p px-2 py-1 text-[9px] font-mono font-bold uppercase rounded-sm border transition {'bg-slate-900 text-white border-slate-900' if state["selected_anim_style_primary"] == 'fade' else 'bg-white text-slate-500 border-slate-200'}" data-anim="fade">Fade</button>
+                            <button class="anim-sel-p px-2 py-1 text-[9px] font-mono font-bold uppercase rounded-sm border transition {'bg-slate-900 text-white border-slate-900' if state["selected_anim_style_primary"] == 'float' else 'bg-white text-slate-500 border-slate-200'}" data-anim="float">Float</button>
+                            <button class="anim-sel-p px-2 py-1 text-[9px] font-mono font-bold uppercase rounded-sm border transition {'bg-slate-900 text-white border-slate-900' if state["selected_anim_style_primary"] == 'cycle' else 'bg-white text-slate-500 border-slate-200'}" data-anim="cycle">Cycle</button>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3.5 pt-2">
+                        <div class="space-y-1">
+                            <span class="text-[9px] font-mono text-slate-400 uppercase">Design Concept</span>
+                            <p class="text-[11px] text-slate-600 leading-relaxed font-sans">{logos["primaryLogoDescription"]}</p>
+                        </div>
+                        <div class="space-y-1">
+                            <span class="text-[9px] font-mono text-slate-400 uppercase">Vector Image Prompt</span>
+                            <p class="text-[10px] font-mono text-slate-500 bg-slate-50 border border-slate-100 p-2 rounded-sm leading-normal">{logos["primaryLogoPrompt"]}</p>
+                        </div>
+                        
+                        <button id="btn-generate-img-p" {p_disabled} class="w-full py-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-100 disabled:text-slate-400 text-white font-mono font-bold uppercase tracking-wider text-[10px] rounded-sm transition flex items-center justify-center">
+                            {p_img_text}
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Secondary Mark Layout -->
+                <div class="bg-white border border-slate-200 rounded-sm p-5 shadow-sm space-y-4 flex flex-col justify-between">
+                    <div class="space-y-1">
+                        <span class="text-[9px] font-mono text-slate-400 block uppercase">Concept Beta • Submark Emblem</span>
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-tight">Graphic Icon / Submark</h4>
+                    </div>
+                    
+                    <!-- Display Visual Frame -->
+                    <div class="aspect-video rounded-sm bg-slate-50 border border-slate-200 p-6 flex items-center justify-center relative group overflow-hidden shadow-inner">
+                        <div id="secondary-logo-preview-box" class="w-full h-full flex items-center justify-center">{s_logo_box}</div>
+                    </div>
+                    
+                    <!-- Motion Controller -->
+                    <div class="flex items-center justify-between bg-slate-50 p-2 border border-slate-200 rounded-sm text-xs">
+                        <span class="font-bold text-[9px] uppercase tracking-wider text-slate-400 font-mono">Mark Motion:</span>
+                        <div class="flex space-x-1">
+                            <button class="anim-sel-s px-2 py-1 text-[9px] font-mono font-bold uppercase rounded-sm border transition {'bg-slate-900 text-white border-slate-900' if state["selected_anim_style_secondary"] == 'none' else 'bg-white text-slate-500 border-slate-200'}" data-anim="none">Static</button>
+                            <button class="anim-sel-s px-2 py-1 text-[9px] font-mono font-bold uppercase rounded-sm border transition {'bg-slate-900 text-white border-slate-900' if state["selected_anim_style_secondary"] == 'fade' else 'bg-white text-slate-500 border-slate-200'}" data-anim="fade">Fade</button>
+                            <button class="anim-sel-s px-2 py-1 text-[9px] font-mono font-bold uppercase rounded-sm border transition {'bg-slate-900 text-white border-slate-900' if state["selected_anim_style_secondary"] == 'float' else 'bg-white text-slate-500 border-slate-200'}" data-anim="float">Float</button>
+                            <button class="anim-sel-s px-2 py-1 text-[9px] font-mono font-bold uppercase rounded-sm border transition {'bg-slate-900 text-white border-slate-900' if state["selected_anim_style_secondary"] == 'cycle' else 'bg-white text-slate-500 border-slate-200'}" data-anim="cycle">Cycle</button>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3.5 pt-2">
+                        <div class="space-y-1">
+                            <span class="text-[9px] font-mono text-slate-400 uppercase">Design Concept</span>
+                            <p class="text-[11px] text-slate-600 leading-relaxed font-sans">{logos["secondaryLogoDescription"]}</p>
+                        </div>
+                        <div class="space-y-1">
+                            <span class="text-[9px] font-mono text-slate-400 uppercase">Vector Image Prompt</span>
+                            <p class="text-[10px] font-mono text-slate-500 bg-slate-50 border border-slate-100 p-2 rounded-sm leading-normal">{logos["secondaryLogoPrompt"]}</p>
+                        </div>
+                        
+                        <button id="btn-generate-img-s" {s_disabled} class="w-full py-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-100 disabled:text-slate-400 text-white font-mono font-bold uppercase tracking-wider text-[10px] rounded-sm transition flex items-center justify-center">
+                            {s_img_text}
+                        </button>
+                    </div>
+                </div>
+            </div>
+            """
+        else: # scalability
+            p_logo_el = ""
+            if brand.get("primaryLogoUrl"):
+                p_logo_el = f'<img src="{brand["primaryLogoUrl"]}" alt="Primary" class="max-h-full max-w-full object-contain" referrerPolicy="no-referrer" />'
+            else:
+                p_logo_el = f'<div class="max-h-full max-w-full scale-50">{logos["placeholderPrimarySvg"]}</div>'
+
+            s_logo_el = ""
+            if brand.get("secondaryLogoUrl"):
+                s_logo_el = f'<img src="{brand["secondaryLogoUrl"]}" alt="Secondary" class="max-h-full max-w-full object-contain" referrerPolicy="no-referrer" />'
+            else:
+                s_logo_el = f'<div class="max-h-full max-w-full scale-50">{logos["placeholderSecondarySvg"]}</div>'
+
+            colors = brand["colors"]
+            primary_hex = colors[0]["hex"]
+            secondary_hex = colors[1]["hex"] if len(colors) > 1 else colors[0]["hex"]
+            accent_hex = colors[2]["hex"] if len(colors) > 2 else colors[0]["hex"]
+            bg_hex = colors[3]["hex"] if len(colors) > 3 else "#FAFAFA"
+
+            view_content = f"""
+            <div class="space-y-6 animate-fade-in">
+                <!-- Favicon legibility -->
+                <div class="bg-white border border-slate-200 rounded-sm p-5 shadow-sm space-y-4">
+                    <div class="border-b border-slate-100 pb-2">
+                        <span class="text-[9px] font-mono text-slate-400 block uppercase">Favicon & Icon Legibility</span>
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-tight">Digital Screen Micro Scaling</h4>
+                    </div>
+                    
+                    <p class="text-[11px] text-slate-500 leading-relaxed font-sans">
+                        Testing micro-scale legibility. A high-quality brand icon must remain instantly recognizable when scaled down to a browser tab icon or application badge.
+                    </p>
+                    
+                    <div class="flex flex-wrap items-end gap-8 pt-2">
+                        <!-- 16px Browser Tab mockup -->
+                        <div class="space-y-2">
+                            <span class="text-[8px] font-mono text-slate-400 uppercase block">16 &times; 16px (Browser Tab)</span>
+                            <div class="flex items-center space-x-2 bg-slate-50 border border-slate-200 px-3 py-2 rounded-sm w-44">
+                                <div class="w-4 h-4 bg-white flex items-center justify-center border border-slate-200 p-0.5 overflow-hidden">
+                                    <div class="w-full h-full flex items-center justify-center scale-[0.6]">{s_logo_el}</div>
+                                </div>
+                                <span class="text-[9px] font-mono text-slate-400 truncate uppercase">{brand["companyName"]}</span>
+                            </div>
+                        </div>
+
+                        <!-- 32px Mobile Badge mockup -->
+                        <div class="space-y-2">
+                            <span class="text-[8px] font-mono text-slate-400 uppercase block">32 &times; 32px (App Badge)</span>
+                            <div class="w-12 h-12 rounded-lg bg-slate-900 flex items-center justify-center p-2.5 shadow-md relative" style="background-color: {primary_hex}">
+                                <div class="w-full h-full flex items-center justify-center">{s_logo_el}</div>
+                            </div>
+                        </div>
+
+                        <!-- 64px Workspace Icon -->
+                        <div class="space-y-2">
+                            <span class="text-[8px] font-mono text-slate-400 uppercase block">64 &times; 64px (Profile Avatar)</span>
+                            <div class="w-16 h-16 rounded-full bg-white border border-slate-200 flex items-center justify-center p-3 shadow-sm overflow-hidden">
+                                <div class="w-full h-full flex items-center justify-center">{s_logo_el}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Business Card Print Mockup -->
+                <div class="bg-white border border-slate-200 rounded-sm p-5 shadow-sm space-y-4">
+                    <div class="border-b border-slate-100 pb-2">
+                        <span class="text-[9px] font-mono text-slate-400 block uppercase">Stationery Print Legibility</span>
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-tight">Business Card Media (3.5&rdquo; &times; 2&rdquo; Print Scale)</h4>
+                    </div>
+                    
+                    <p class="text-[11px] text-slate-500 leading-relaxed font-sans">
+                        Testing high-density print legibility. Observe how the brand mark, contact grid, and visual balance behave in structured physical stationery formats.
+                    </p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                        <!-- Front of the card -->
+                        <div class="space-y-2">
+                            <span class="text-[8px] font-mono text-slate-400 uppercase block">Card Front (Minimal Brand Presentation)</span>
+                            <div class="w-full max-w-sm aspect-[1.75/1] rounded-sm border border-slate-200 shadow-md p-6 flex flex-col justify-between relative overflow-hidden bg-slate-950 text-white" style="background-color: {primary_hex}">
+                                <!-- Accent color block -->
+                                <div class="absolute right-0 bottom-0 top-0 w-1/3 opacity-15" style="background-color: {accent_hex}"></div>
+                                <div class="w-10 h-10 flex items-center justify-center p-1.5 bg-white/10 rounded-sm">
+                                    {s_logo_el}
+                                </div>
+                                <div class="space-y-1 z-10">
+                                    <h5 class="text-xs font-bold tracking-wider brand-header-font uppercase" style="color: {bg_hex}">{brand["companyName"]}</h5>
+                                    <p class="text-[8px] font-mono tracking-widest uppercase opacity-75">{brand["tagline"]}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Back of the card -->
+                        <div class="space-y-2">
+                            <span class="text-[8px] font-mono text-slate-400 uppercase block">Card Back (Structured Corporate Grid)</span>
+                            <div class="w-full max-w-sm aspect-[1.75/1] rounded-sm border border-slate-200 bg-white shadow-md p-6 flex flex-col justify-between text-slate-800 relative overflow-hidden">
+                                <div class="flex justify-between items-start">
+                                    <div class="space-y-0.5">
+                                        <span class="text-[9px] font-bold brand-header-font tracking-tight uppercase text-slate-900">{brand["companyName"]}</span>
+                                        <span class="text-[7px] font-mono tracking-wide text-slate-400 block uppercase">{brand.get("industry", "Global Corporate")}</span>
+                                    </div>
+                                    <div class="w-7 h-7 flex items-center justify-center p-0.5 bg-slate-100 rounded-sm border border-slate-200">
+                                        {s_logo_el}
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-2 text-[7px] font-mono border-t border-slate-100 pt-3 text-slate-500">
+                                    <div class="space-y-1">
+                                        <p class="font-bold text-slate-800 uppercase">Alex Mercer</p>
+                                        <p class="uppercase">Principal Architect</p>
+                                    </div>
+                                    <div class="space-y-0.5 text-right">
+                                        <p>hello@domain.com</p>
+                                        <p>+1 (555) 019-2834</p>
+                                        <p>www.{brand["companyName"].lower().replace(" ", "")}.com</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Outdoor Billboard Mockup -->
+                <div class="bg-white border border-slate-200 rounded-sm p-5 shadow-sm space-y-4">
+                    <div class="border-b border-slate-100 pb-2">
+                        <span class="text-[9px] font-mono text-slate-400 block uppercase">Enormous Format Legibility</span>
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-tight">Highway Billboard Mockup (Large Format Print & Distance Scale)</h4>
+                    </div>
+                    
+                    <p class="text-[11px] text-slate-500 leading-relaxed font-sans">
+                        Testing distance and large-scale readability. A robust brand signature and positioning slogan must remain readable at high speeds from hundreds of yards away.
+                    </p>
+                    
+                    <div class="pt-2">
+                        <!-- Billboard frame -->
+                        <div class="w-full aspect-[21/9] rounded-sm bg-slate-900 text-white flex flex-col justify-between p-6 md:p-8 overflow-hidden relative shadow-md" style="background-color: {secondary_hex}">
+                            <!-- Background pattern -->
+                            <div class="absolute -right-24 -bottom-24 w-80 h-80 rounded-full opacity-10 border-8" style="border-color: {accent_hex}"></div>
+                            <div class="absolute left-8 top-8 w-44 h-44 rounded-md rotate-12 opacity-[0.04]" style="background-color: {bg_hex}"></div>
+                            
+                            <!-- Header band -->
+                            <div class="flex items-center justify-between border-b pb-2 opacity-50" style="border-color: {bg_hex}22">
+                                <span class="text-[7px] md:text-[9px] uppercase font-mono tracking-widest">{brand.get("industry", "Corporate Series")}</span>
+                                <span class="text-[7px] md:text-[9px] uppercase font-mono tracking-widest">Outdoor Advertising sandbox</span>
+                            </div>
+
+                            <!-- Main core message centered -->
+                            <div class="text-center py-2 my-auto space-y-1 md:space-y-2 z-10">
+                                <h3 class="text-lg md:text-2xl lg:text-3xl font-bold tracking-tight leading-none uppercase brand-header-font" style="color: {bg_hex}">&ldquo;{brand["tagline"]}&rdquo;</h3>
+                                <p class="text-[8px] md:text-[10px] opacity-80 font-mono tracking-widest uppercase">Redefining standards with clean brand architecture</p>
+                            </div>
+
+                            <!-- Footer band -->
+                            <div class="flex items-end justify-between border-t pt-2" style="border-color: {bg_hex}22">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-6 h-6 md:w-8 md:h-8 flex items-center justify-center p-1 bg-white/10 rounded-sm">
+                                        {p_logo_el}
+                                    </div>
+                                    <span class="text-xs md:text-sm font-bold tracking-tight brand-header-font" style="color: {bg_hex}">{brand["companyName"]}</span>
+                                </div>
+                                <span class="text-[7px] md:text-[9px] font-mono uppercase opacity-60">Visible Legibility check • 500 Yards</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """
+
+        content = f"""
+        <div class="space-y-6">
+            {toggle_bar}
+            {view_content}
+        </div>
+        """
+        container.innerHTML = content
+        
+        # Bind toggle clicks inside the tab
+        def set_logo_view_mode(mode_val):
+            def handler(ev):
+                state["logo_view_mode"] = mode_val
+                render_active_tab()
+            return handler
+            
+        document["btn-logo-view-standard"].bind("click", set_logo_view_mode("standard"))
+        document["btn-logo-view-scalability"].bind("click", set_logo_view_mode("scalability"))
+
+        # Bind Standard View elements only if standard view is active
+        if state["logo_view_mode"] == "standard":
+            # Bind motion selectors
+            for btn in document.select(".anim-sel-p"):
+                def bind_p_anim(ev, style=btn.attrs.get("data-anim")):
+                    state["selected_anim_style_primary"] = style
+                    render_active_tab()
+                btn.bind("click", bind_p_anim)
+
+            for btn in document.select(".anim-sel-s"):
+                def bind_s_anim(ev, style=btn.attrs.get("data-anim")):
+                    state["selected_anim_style_secondary"] = style
+                    render_active_tab()
+                btn.bind("click", bind_s_anim)
+
+            # Bind Image Generation Triggers
+            if not state["is_generating_image_primary"]:
+                document["btn-generate-img-p"].bind("click", lambda ev: aio.run(trigger_image_generation("primary")))
+            if not state["is_generating_image_secondary"]:
+                document["btn-generate-img-s"].bind("click", lambda ev: aio.run(trigger_image_generation("secondary")))
+
+    elif tab == "activation":
+        logos = brand["logoConcepts"]
+        
+        # Pull color hexes for the mockup post graphic
+        colors = brand["colors"]
+        primary_color = colors[0]
+        secondary_color = colors[1] if len(colors) > 1 else colors[0]
+        accent_color = colors[2] if len(colors) > 2 else colors[0]
+        bg_color = colors[3] if len(colors) > 3 else {"hex": "#FAFAFA", "name": "Soft Off-White"}
+
+        # Animation classes
+        anim_class = ""
+        target_anim_style = state["selected_anim_style_primary"] if state["mockup_active_logo"] == "primary" else state["selected_anim_style_secondary"]
+        if target_anim_style == "fade": anim_class = "logo-anim-fade"
+        elif target_anim_style == "float": anim_class = "logo-anim-float"
+        elif target_anim_style == "cycle": anim_class = "logo-anim-cycle"
+
+        # Mockup inside circles
+        mockup_img = ""
+        if state["mockup_active_logo"] == "primary":
+            if brand.get("primaryLogoUrl"):
+                mockup_img = f'<img src="{brand["primaryLogoUrl"]}" alt="Primary Mockup" class="w-full h-full object-contain {anim_class}" referrerPolicy="no-referrer" />'
+            else:
+                mockup_img = f'<div class="w-full h-full flex items-center justify-center scale-75 {anim_class}">{logos["placeholderPrimarySvg"]}</div>'
+        else:
+            if brand.get("secondaryLogoUrl"):
+                mockup_img = f'<img src="{brand["secondaryLogoUrl"]}" alt="Secondary Mockup" class="w-full h-full object-contain {anim_class}" referrerPolicy="no-referrer" />'
+            else:
+                mockup_img = f'<div class="w-full h-full flex items-center justify-center scale-75 {anim_class}">{logos["placeholderSecondarySvg"]}</div>'
+
+        # Post watermark icon
+        post_icon = ""
+        if brand.get("secondaryLogoUrl"):
+            post_icon = f'<img src="{brand["secondaryLogoUrl"]}" alt="Post Avatar" class="w-full h-full object-contain" referrerPolicy="no-referrer" />'
+        else:
+            post_icon = f'<div class="w-full h-full flex items-center justify-center scale-90">{logos["placeholderSecondarySvg"]}</div>'
+
+        content = f"""
+        <div class="space-y-6">
+            <div class="bg-white border border-slate-200 rounded-sm p-5 shadow-sm space-y-2">
+                <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">05. Brand Activation Visualizer</span>
+                <h3 class="text-base font-bold text-slate-800 uppercase tracking-tight">Social Media Mockups & Simulated Post Feed</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    Test your generated brand elements across digital mockup frames in real-time, observing how typography and palettes form a highly unified layout.
+                </p>
+            </div>
+            
+            <!-- Controls block -->
+            <div class="flex items-center space-x-2 bg-white p-3 border border-slate-200 rounded-sm shadow-sm text-xs">
+                <span class="font-bold text-[10px] uppercase tracking-wider text-slate-400 font-mono">Mockup Source:</span>
+                <div class="flex space-x-1.5">
+                    <button class="mockup-logo-toggle px-3 py-1.5 text-[10px] font-mono font-bold uppercase rounded-sm border transition {'bg-slate-900 text-white border-slate-900' if state["mockup_active_logo"] == 'primary' else 'bg-white text-slate-500 border-slate-200'}" data-source="primary">Primary Logo</button>
+                    <button class="mockup-logo-toggle px-3 py-1.5 text-[10px] font-mono font-bold uppercase rounded-sm border transition {'bg-slate-900 text-white border-slate-900' if state["mockup_active_logo"] == 'secondary' else 'bg-white text-slate-500 border-slate-200'}" data-source="secondary">Secondary Mark</button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Left panel: Circle & Square -->
+                <div class="lg:col-span-5 bg-white border border-slate-200 rounded-sm p-5 space-y-6 shadow-sm flex flex-col justify-between">
+                    <div class="space-y-2">
+                        <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest block border-b border-slate-100 pb-1.5">Profile Picture Frames</span>
+                        <p class="text-[11px] text-slate-500 leading-relaxed">
+                            How your chosen asset sits inside typical round or square display frames. Notice how it responds to the live motion styles selected on the Logo tab.
+                        </p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 py-4 justify-items-center">
+                        <div class="space-y-2 text-center">
+                            <span class="text-[8px] font-mono text-slate-400 uppercase block">Circular Frame</span>
+                            <div class="w-24 h-24 rounded-full bg-slate-50 border-2 border-slate-200 flex items-center justify-center p-3 overflow-hidden shadow-inner relative">
+                                {mockup_img}
+                            </div>
+                            <span class="text-[10px] text-slate-500 font-sans block mt-1">e.g. Threads, Instagram</span>
+                        </div>
+                        
+                        <div class="space-y-2 text-center">
+                            <span class="text-[8px] font-mono text-slate-400 uppercase block">Square Frame</span>
+                            <div class="w-24 h-24 rounded-sm bg-slate-50 border-2 border-slate-200 flex items-center justify-center p-3 overflow-hidden shadow-inner relative">
+                                {mockup_img}
+                            </div>
+                            <span class="text-[10px] text-slate-500 font-sans block mt-1">e.g. Slack, Slack, LinkedIn</span>
+                        </div>
+                    </div>
+                    
+                    <div class="text-[10px] bg-slate-50 p-3 rounded-sm border border-slate-200 text-slate-500 font-mono italic leading-normal">
+                        💡 Your motion settings (Fade, Float, Cycle) propagate instantly to these profile picture mockups!
+                    </div>
+                </div>
+                
+                <!-- Right panel: Instagram simulated Post -->
+                <div class="lg:col-span-7 bg-white border border-slate-200 rounded-sm p-5 shadow-sm space-y-4">
+                    <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest block border-b border-slate-100 pb-1.5 font-mono">Social Media Post Preview</span>
+                    
+                    <div class="border border-slate-200 rounded-sm overflow-hidden bg-white max-w-sm mx-auto shadow-sm">
+                        <!-- Post Header -->
+                        <div class="p-3 flex items-center justify-between border-b border-slate-100">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-7 h-7 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center p-1 overflow-hidden">
+                                    {post_icon}
+                                </div>
+                                <div>
+                                    <span class="text-[11px] font-bold text-slate-800 block tracking-tight brand-header-font leading-tight">{brand["companyName"]}</span>
+                                    <span class="text-[8px] text-slate-400 font-mono block">@username • Sponsored</span>
+                                </div>
+                            </div>
+                            <span class="text-slate-400 text-xs">•••</span>
+                        </div>
+                        
+                        <!-- Post Caption -->
+                        <div class="px-3.5 py-2">
+                            <p class="text-[11px] text-slate-700 leading-relaxed brand-body-font">
+                                ✨ Introducing <span class="font-bold">{brand["companyName"]}</span>! Our core mission: <span class="italic">“{brand["mission"]}”</span>. Join us as we redefine brand authenticity with modern aesthetics. 🚀
+                            </p>
+                            <p class="text-[9px] text-slate-400 font-mono mt-1">
+                                #BrandDNA #DesignThinking #{brand["companyName"].replace(" ", "")}
+                            </p>
+                        </div>
+                        
+                        <!-- Creative Graphic Post Box -->
+                        <div class="aspect-square w-full p-6 flex flex-col justify-between relative select-none overflow-hidden" style="background-color: {primary_color["hex"]}; color: {bg_color["hex"]}">
+                            <!-- Graphic shapes background -->
+                            <div class="absolute -right-12 -bottom-12 w-48 h-48 border-4 rounded-full" style="border-color: {accent_color["hex"]}; opacity: 0.15"></div>
+                            <div class="absolute -left-8 -top-8 w-36 h-36 rounded-md rotate-45" style="background-color: {secondary_color["hex"]}; opacity: 0.1"></div>
+                            
+                            <div class="flex items-center justify-between border-b pb-1.5" style="border-color: {bg_color["hex"]}22">
+                                <span class="text-[8px] uppercase font-mono tracking-widest" style="color: {secondary_color["hex"]}">{brand.get("industry", "Brand Bible Series")}</span>
+                                <span class="text-[8px] uppercase font-mono tracking-widest">Est. 2026</span>
+                            </div>
+                            
+                            <div class="py-4 my-auto text-center">
+                                <h2 class="text-sm md:text-base font-bold tracking-tight leading-snug uppercase brand-header-font" style="color: {bg_color["hex"]}">&ldquo;{brand["tagline"]}&rdquo;</h2>
+                                <p class="text-[9px] opacity-80 font-mono tracking-wide mt-2 uppercase">Brand Activation Blueprint</p>
+                            </div>
+                            
+                            <div class="flex items-end justify-between border-t pt-1.5" style="border-color: {bg_color["hex"]}22">
+                                <span class="text-[9px] font-bold brand-header-font" style="color: {bg_color["hex"]}">{brand["companyName"]}</span>
+                                <div class="w-6 h-6 flex items-center justify-center p-0.5 bg-white/15 rounded-sm">
+                                    {post_icon}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Actions bar -->
+                        <div class="p-3 flex items-center justify-between border-t border-slate-100 text-[10px]">
+                            <div class="flex space-x-3 text-slate-500 font-bold">
+                                <span class="text-red-500">♥ 142</span>
+                                <span>💬 18</span>
+                                <span>✈</span>
+                            </div>
+                            <span class="text-[9px] font-mono font-bold uppercase tracking-wider" style="color: {accent_color["hex"]}">Swatch: {primary_color["name"]}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        """
+        container.innerHTML = content
+        
+        # Bind Mockup triggers
+        for btn in document.select(".mockup-logo-toggle"):
+            def bind_mockup_source(ev, src=btn.attrs.get("data-source")):
+                state["mockup_active_logo"] = src
+                render_active_tab()
+            btn.bind("click", bind_mockup_source)
+
+    elif tab == "challenge":
+        # Stress-test audit critique
+        challenge = brand.get("challengeReport")
+        
+        btn_text = "Challenge Brand Identity"
+        is_disabled = ""
+        if state["is_challenging"]:
+            btn_text = "Auditing Strategy..."
+            is_disabled = "disabled"
+
+        header_block = f"""
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-700 pb-4">
+            <div>
+                <span class="text-[9px] text-red-500 font-mono uppercase tracking-widest block font-bold">🚨 Strategic Review</span>
+                <h3 class="text-sm font-bold text-white uppercase tracking-tight">06. Devil's Advocate stress-test</h3>
+            </div>
+            <button id="btn-challenge-audit" {is_disabled} class="px-4 py-2 bg-red-700 hover:bg-red-600 disabled:bg-slate-800 disabled:text-slate-500 text-white text-[10px] font-mono font-bold uppercase tracking-wider rounded-sm transition flex items-center space-x-1.5 shadow">
+                <span>{btn_text}</span>
+            </button>
+        </div>
+        """
+
+        if state["is_challenging"]:
+            main_block = f"""
+            <div class="flex flex-col items-center justify-center py-16 space-y-3">
+                <span class="animate-spin inline-block w-8 h-8 border-3 border-red-500 border-t-transparent rounded-full mb-2"></span>
+                <p class="text-xs text-slate-400 font-mono uppercase tracking-widest animate-pulse">Exposing hidden assumptions & critical pitfalls...</p>
+            </div>
+            """
+        elif not challenge:
+            main_block = f"""
+            <div class="text-center py-12 text-xs text-slate-500">
+                Press "Challenge Brand Identity" to launch a direct strategic critique. Real business plans test their assumptions early.
+            </div>
+            """
+        else:
+            pit_cards = ""
+            for pit in challenge["pitfalls"]:
+                pit_cards += f"""
+                <div class="bg-slate-800 border border-slate-700 p-3 rounded-sm space-y-1">
+                    <span class="text-xs font-bold text-red-400 font-mono block uppercase">⚠️ {pit["title"]}</span>
+                    <p class="text-[11px] text-slate-300 leading-normal">{pit["description"]}</p>
+                </div>
+                """
+                
+            questions_list = ""
+            for q_idx, q in enumerate(challenge["hardQuestions"]):
+                questions_list += f"""
+                <li class="flex items-start space-x-2 text-xs bg-slate-800 border border-slate-700 p-2.5 rounded-sm">
+                    <span class="font-mono text-amber-400 font-bold mr-1">{q_idx + 1}.</span>
+                    <p class="text-slate-200 leading-relaxed font-sans">{q}</p>
+                </li>
+                """
+
+            main_block = f"""
+            <div class="space-y-6 pt-2">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <span class="text-[9px] text-slate-400 uppercase tracking-wider font-mono block">Critique & Flaw Analysis</span>
+                        <p class="text-xs text-slate-300 leading-relaxed bg-slate-800 border border-slate-700 p-4 rounded-sm leading-relaxed">{challenge["criticalCritique"]}</p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <span class="text-[9px] text-red-400 uppercase tracking-wider font-mono block">Identified Strategic Risks</span>
+                        <div class="space-y-2">{pit_cards}</div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-800 pt-6">
+                    <div class="space-y-3">
+                        <span class="text-[9px] text-amber-400 uppercase tracking-wider font-mono block">3 Hard Questions to Resolve</span>
+                        <ul class="space-y-2">{questions_list}</ul>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <span class="text-[9px] text-emerald-400 uppercase tracking-wider font-mono block">Actionable Brand Refinements</span>
+                        <p class="text-xs text-slate-200 leading-relaxed bg-slate-800 border border-slate-700 p-4 rounded-sm leading-relaxed">{challenge["refinementPivots"]}</p>
+                    </div>
+                </div>
+            </div>
+            """
+
+        content = f"""
+        <div class="bg-slate-900 border border-slate-800 rounded-sm p-6 space-y-6 shadow-md text-white">
+            {header_block}
+            {main_block}
+        </div>
+        """
+        container.innerHTML = content
+        
+        # Bind trigger
+        if not state["is_challenging"]:
+            document["btn-challenge-audit"].bind("click", lambda ev: aio.run(trigger_challenge_audit()))
+
+# --- BRAND STRATEGY CHATBOT LOGIC ---
+def render_chat_messages():
+    role = state["current_chat_role"]
+    history = state["chat_history"].get(role, [])
+    
+    container = document["chat-messages-container"]
+    container.innerHTML = ""
+    
+    for msg in history:
+        # Style chat box based on role & sender
+        is_user = msg["role"] == "user"
+        
+        wrapper_class = "flex flex-col space-y-1 max-w-[85%] "
+        if is_user:
+            wrapper_class += "ml-auto items-end"
+            bubble_class = "bg-slate-900 text-white rounded-sm rounded-tr-none p-3 shadow-sm text-xs leading-relaxed"
+            meta_label = "YOU"
+        else:
+            wrapper_class += "items-start"
+            if role == "consultant":
+                bubble_class = "bg-white border border-slate-200 text-slate-800 rounded-sm rounded-tl-none p-3 shadow-sm text-xs leading-relaxed"
+                meta_label = "BRAND PLANNER"
+            elif role == "creative":
+                bubble_class = "bg-white border border-slate-200 text-slate-800 rounded-sm rounded-tl-none p-3 shadow-sm text-xs leading-relaxed"
+                meta_label = "CREATIVE DIRECTOR"
+            else: # challenger
+                bubble_class = "bg-red-50 text-red-950 border border-red-200 rounded-sm rounded-tl-none p-3 shadow-sm text-xs leading-relaxed font-sans"
+                meta_label = "DEVIL'S ADVOCATE"
+                
+        meta_html = f'<span class="text-[8px] font-mono text-slate-400 uppercase tracking-widest">{meta_label}</span>'
+        bubble_html = f'<div class="{bubble_class}">{msg["content"]}</div>'
+        
+        msg_wrapper = html.DIV(className=wrapper_class)
+        msg_wrapper.innerHTML = f"{meta_html}{bubble_html}"
+        container <= msg_wrapper
+        
+    # Scroll chat to bottom
+    container.scrollTop = container.scrollHeight
+
+# --- EVENT BINDINGS FOR CHAT PERSONAS ---
+def set_chat_persona(persona):
+    state["current_chat_role"] = persona
+    
+    # Update active toggle styles
+    for btn_id, p_name in [("persona-planner", "consultant"), ("persona-creative", "creative"), ("persona-challenger", "challenger")]:
+        btn = document[btn_id]
+        btn.classList.remove("bg-indigo-600", "bg-purple-600", "bg-red-700", "text-white")
+        btn.classList.add("text-slate-400")
+        
+        if p_name == persona:
+            btn.classList.remove("text-slate-400")
+            if persona == "consultant":
+                btn.classList.add("bg-indigo-600", "text-white")
+            elif persona == "creative":
+                btn.classList.add("bg-purple-600", "text-white")
+            else: # challenger
+                btn.classList.add("bg-red-700", "text-white")
+                
+    render_chat_messages()
+
+document["persona-planner"].bind("click", lambda ev: set_chat_persona("consultant"))
+document["persona-creative"].bind("click", lambda ev: set_chat_persona("creative"))
+document["persona-challenger"].bind("click", lambda ev: set_chat_persona("challenger"))
+
+# --- ACTION: CHAT MESSAGE TRANSMISSION ---
+async def trigger_chat_send():
+    role = state["current_chat_role"]
+    brand = state["current_brand"]
+    if not brand:
+        window.alert("Please synthesize a brand bible first to enable contextual strategy chats.")
+        return
+        
+    user_input = document["chat-input"].value.strip()
+    if not user_input or state["is_sending_chat"]: return
+    
+    # Clear input
+    document["chat-input"].value = ""
+    
+    # Append message
+    state["chat_history"][role].append({"role": "user", "content": user_input})
+    render_chat_messages()
+    
+    state["is_sending_chat"] = True
+    document["chat-btn-send"].text = "..."
+    
+    # Determine system prompt instruction based on persona role
+    if role == "consultant":
+        system_instruction = f"""You are an Elite Brand Planner and positioning strategist advising the brand "{brand["companyName"]}".
+         Industry sector: {brand.get("industry", "General")}.
+         Brand core mission: "{brand["mission"]}".
+         Target Audience: "{brand["targetAudience"]}".
+         Brand Core Values: {", ".join(brand["brandValues"])}. 
+         Visual Style: {brand.get("aestheticStyle", "Modern Minimalist")}.
+         Advise with highly professional, specific, and actionable strategies on brand positioning, business operations, target market fit, and marketing copy. Be inspirational and articulate."""
+    elif role == "creative":
+        colors_str = ", ".join([f"{c['name']} ({c['hex']}) - {c['role']}" for c in brand["colors"]])
+        system_instruction = f"""You are an Award-Winning Creative Director and visual designer advising the brand "{brand["companyName"]}".
+         Brand Visual Style: {brand.get("aestheticStyle", "Modern Minimalist")}. 
+         Google Fonts selected: Header: {brand["fonts"]["headerFont"]}, Body: {brand["fonts"]["bodyFont"]}.
+         Color Palette: {colors_str}.
+         Advise strictly on user-interface design, logo refinement, image prompting, packaging assets, merchandising, typography hierarchies, and sensory design details. Be descriptive and artistically savvy."""
+    else: # challenger
+        system_instruction = f"""You are an uncompromising, professional Devil's Advocate and Brand Strategy Challenger. 
+         Your job is to critically stress-test, challenge, and dissect the branding ideas of "{brand["companyName"]}".
+         Brand Mission: "{brand["mission"]}".
+         Target Audience: "{brand["targetAudience"]}".
+         Positioning Statement: "{brand["positioningStatement"]}".
+         Core Values: {", ".join(brand["brandValues"])}.
+
+         Identify positioning blindspots, potential consumer doubts, saturated visual or messaging clichés, and describe what will fail. Be direct, witty, analytical, and highly demanding, but always follow up with constructive suggestions to refine and solidify their core ideas."""
+
+    try:
+        # Build history context (last 8 messages for memory efficiency)
+        sub_messages = []
+        for msg in state["chat_history"][role][-8:]:
+            sub_messages.append({"role": msg["role"], "content": msg["content"]})
+            
+        data = {
+            "messages": sub_messages,
+            "systemInstruction": system_instruction
+        }
+        
+        response = await py_fetch("/api/brand/chat", data)
+        reply = response.get("reply", "Consultant experienced an interruption. Let us reconnect.")
+        
+        state["chat_history"][role].append({"role": "assistant", "content": reply})
+    except Exception as chat_err:
+        state["chat_history"][role].append({"role": "assistant", "content": f"⚠️ Strategy transmission error: {str(chat_err)}"})
+        
+    state["is_sending_chat"] = False
+    document["chat-btn-send"].text = "SEND"
+    render_chat_messages()
+
+document["chat-btn-send"].bind("click", lambda ev: aio.run(trigger_chat_send()))
+
+# Handle keyboard Enter in chat input
+def handle_chat_keypress(ev):
+    if ev.keyCode == 13:
+        aio.run(trigger_chat_send())
+document["chat-input"].bind("keypress", handle_chat_keypress)
+
+# --- ACTION: BRAND STRESS-TEST GENERATOR ---
+async def trigger_challenge_audit():
+    brand = state["current_brand"]
+    if not brand or state["is_challenging"]: return
+    
+    state["is_challenging"] = True
+    render_active_tab() # updates tab with spinner
+    
+    payload = {
+        "companyName": brand["companyName"],
+        "industry": brand.get("industry", ""),
+        "mission": brand["mission"],
+        "targetAudience": brand["targetAudience"],
+        "positioningStatement": brand["positioningStatement"],
+        "brandValues": brand["brandValues"]
+    }
+    
+    try:
+        response = await py_fetch("/api/brand/challenge", payload)
+        brand["challengeReport"] = response
+        save_brand_to_storage(brand)
+    except Exception as ch_err:
+        window.alert(f"Failed to compile Challenger Audit: {str(ch_err)}")
+        
+    state["is_challenging"] = False
+    render_active_tab()
+    window.lucide.createIcons()
+
+# --- ACTION: AI IMAGE LOGO GENERATION ---
+async def trigger_image_generation(logo_type):
+    brand = state["current_brand"]
+    if not brand: return
+    
+    prompt = ""
+    if logo_type == "primary":
+        if state["is_generating_image_primary"]: return
+        state["is_generating_image_primary"] = True
+        prompt = brand["logoConcepts"]["primaryLogoPrompt"]
+    else:
+        if state["is_generating_image_secondary"]: return
+        state["is_generating_image_secondary"] = True
+        prompt = brand["logoConcepts"]["secondaryLogoPrompt"]
+        
+    render_active_tab() # triggers loading state
+    
+    try:
+        response = await py_fetch("/api/brand/generate-image", {"prompt": prompt, "size": "1K"})
+        image_url = response.get("imageUrl")
+        
+        if image_url:
+            if logo_type == "primary":
+                brand["primaryLogoUrl"] = image_url
+            else:
+                brand["secondaryLogoUrl"] = image_url
+            save_brand_to_storage(brand)
+        else:
+            window.alert("Image API completed but did not return a valid asset payload.")
+    except Exception as img_err:
+        window.alert(f"AI Image Generation failed: {str(img_err)}")
+        
+    if logo_type == "primary":
+        state["is_generating_image_primary"] = False
+    else:
+        state["is_generating_image_secondary"] = False
+        
+    render_active_tab()
+    window.lucide.createIcons()
+
+# --- ACTION: SYNTHESIZE BRAND BIBLE ---
+async def trigger_brand_synthesis():
+    if state["is_generating"]: return
+    
+    name = document["input-company-name"].value.strip()
+    industry = document["input-industry"].value.strip()
+    mission = document["input-mission"].value.strip()
+    target = document["input-target"].value.strip()
+    aesthetic = document["select-aesthetic"].value
+    
+    if not name or not mission:
+        window.alert("Please provide at least a Company Name and Core Mission statement.")
+        return
+        
+    state["is_generating"] = True
+    document["spinner-synthesize"].classList.remove("hidden")
+    document["btn-synthesize-text"].text = "SYNTHESIZING DNA..."
+    
+    payload = {
+        "companyName": name,
+        "industry": industry,
+        "mission": mission,
+        "targetAudience": target,
+        "brandValues": state["form_values_list"],
+        "aestheticStyle": aesthetic
+    }
+    
+    try:
+        response = await py_fetch("/api/brand/generate", payload)
+        
+        # Inject standard client metadata
+        response["companyName"] = name
+        response["industry"] = industry
+        response["mission"] = mission
+        response["targetAudience"] = target
+        response["brandValues"] = list(state["form_values_list"])
+        response["aestheticStyle"] = aesthetic
+        
+        # Save and launch
+        save_brand_to_storage(response)
+        render_saved_library()
+        load_brand_into_workspace(response)
+    except Exception as syn_err:
+        window.alert(f"DNA Synthesis failed: {str(syn_err)}")
+        
+    state["is_generating"] = False
+    document["spinner-synthesize"].classList.add("hidden")
+    document["btn-synthesize-text"].text = "SYNTHESIZE BRAND DNA"
+
+document["btn-synthesize"].bind("click", lambda ev: aio.run(trigger_brand_synthesis()))
+
+# --- BRAND VALUE LIST BUILDER ---
+def add_value_tag(ev=None):
+    new_tag = document["input-value-tag"].value.strip()
+    if not new_tag: return
+    
+    # Cap values lists
+    if len(state["form_values_list"]) >= 5:
+        window.alert("A highly cohesive brand bible operates best with a focused list of 3-5 core values.")
+        return
+        
+    if new_tag not in state["form_values_list"]:
+        state["form_values_list"].append(new_tag)
+        
+    document["input-value-tag"].value = ""
+    render_tags()
+
+document["btn-add-value"].bind("click", add_value_tag)
+
+def handle_tag_keypress(ev):
+    if ev.keyCode == 13:
+        add_value_tag()
+document["input-value-tag"].bind("keypress", handle_tag_keypress)
+
+# --- PRESET LOADER HANDLERS ---
+def load_preset(preset_key):
+    preset = PRESETS[preset_key]
+    document["input-company-name"].value = preset["companyName"]
+    document["input-industry"].value = preset["industry"]
+    document["input-mission"].value = preset["mission"]
+    document["input-target"].value = preset["targetAudience"]
+    document["select-aesthetic"].value = preset["aestheticStyle"]
+    
+    state["form_values_list"] = list(preset["brandValues"])
+    render_tags()
+
+document["preset-solstice"].bind("click", lambda ev: load_preset("solstice"))
+document["preset-aura"].bind("click", lambda ev: load_preset("aura"))
+document["preset-hyperion"].bind("click", lambda ev: load_preset("hyperion"))
+
+# --- TAB INTERACTION HOOKS ---
+for t_btn in document.select(".tab-btn"):
+    def bind_tab_switch(ev, target_tab=t_btn.attrs.get("data-tab")):
+        state["active_view_tab"] = target_tab
+        
+        # Set classes
+        for b in document.select(".tab-btn"):
+            b.classList.remove("tab-active")
+            if b.attrs.get("data-tab") == target_tab:
+                b.classList.add("tab-active")
+                
+        render_active_tab()
+        window.lucide.createIcons()
+        
+    t_btn.bind("click", bind_tab_switch)
+
+# --- SHARING & PORTABLE DEEPLINKS ---
+import base64
+
+def show_share_modal(ev):
+    brand = state["current_brand"]
+    if not brand: return
+    
+    try:
+        # Encode brand bible
+        json_str = json.dumps(brand)
+        json_bytes = json_str.encode("utf-8")
+        b64_bytes = base64.urlsafe_b64encode(json_bytes)
+        b64_str = b64_bytes.decode("utf-8")
+        
+        # Build deeplink
+        origin = window.location.origin
+        pathname = window.location.pathname
+        share_url = f"{origin}{pathname}?share={b64_str}"
+        
+        # Inject url
+        document["share-url-input"].value = share_url
+        
+        # Reveal modal
+        document["share-modal"].classList.remove("hidden")
+        window.lucide.createIcons()
+    except Exception as share_err:
+        window.alert(f"Failed to compile shareable link: {str(share_err)}")
+
+def close_share_modal(ev):
+    document["share-modal"].classList.add("hidden")
+
+def copy_share_url(ev):
+    share_url = document["share-url-input"].value
+    if share_url:
+        window.navigator.clipboard.writeText(share_url)
+        window.alert("Successfully copied shareable Brand Bible link to clipboard!")
+
+# Bind modal elements
+document["header-btn-share"].bind("click", show_share_modal)
+document["share-modal-close"].bind("click", close_share_modal)
+document["btn-copy-share-url"].bind("click", copy_share_url)
+
+
+# --- PRINT & MULTI-PAGE PDF GENERATOR ---
+def generate_print_document_html(brand):
+    fonts = brand.get("fonts", {})
+    header_font = fonts.get("headerFont", "Space Grotesk")
+    body_font = fonts.get("bodyFont", "Inter")
+    logos = brand.get("logoConcepts", {})
+    
+    # Page 1: Cover Page
+    page_1_cover = f"""
+    <div class="print-page print-page-shadow bg-slate-900 text-white p-12 md:p-16 rounded-sm aspect-[1/1.414] min-h-[1050px] flex flex-col justify-between border border-slate-800 relative overflow-hidden">
+        <div class="absolute -right-24 -top-24 w-96 h-96 rounded-full opacity-10 border-[12px] border-amber-500"></div>
+        <div class="absolute -left-24 -bottom-24 w-96 h-96 rounded-full opacity-10 border-[12px] border-red-500"></div>
+        
+        <div class="border-b border-slate-800 pb-4">
+          <span class="text-[10px] font-mono uppercase tracking-[0.25em] text-amber-500 block">OFFICIAL BRAND IDENTITY SPECIFICATION</span>
+          <span class="text-[9px] font-mono text-slate-500 uppercase tracking-wider block">CONSTITUENT OF BRANDDNA CORE ENGINE</span>
+        </div>
+        
+        <div class="my-auto space-y-6 relative z-10">
+            <div class="space-y-2">
+                <span class="text-[10px] font-mono text-slate-400 uppercase tracking-widest block font-bold">ESTABLISHED PRESET & DIALECT</span>
+                <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight brand-header-font uppercase text-white leading-none">{brand["companyName"]}</h1>
+            </div>
+            
+            <div class="h-0.5 w-24 bg-gradient-to-r from-amber-500 to-red-600"></div>
+            
+            <div class="space-y-1.5 max-w-xl">
+                <span class="text-[9px] font-mono text-slate-400 uppercase tracking-wider block">Primary Brand Slogan</span>
+                <p class="text-lg md:text-xl font-medium font-display italic text-amber-400 leading-relaxed">&ldquo;{brand["tagline"]}&rdquo;</p>
+            </div>
+        </div>
+        
+        <div class="border-t border-slate-800 pt-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 text-[9px] font-mono text-slate-400">
+            <div class="space-y-1">
+                <span class="block text-slate-500">DEVELOPMENT INDUSTRY</span>
+                <span class="block text-white font-bold uppercase">{brand.get("industry", "General / Corporate")}</span>
+            </div>
+            <div class="space-y-1">
+                <span class="block text-slate-500">VISUAL DIRECTION</span>
+                <span class="block text-white font-bold uppercase">{brand.get("aestheticStyle", "Modern Minimalist")}</span>
+            </div>
+            <div class="space-y-1 text-right">
+                <span class="block text-slate-500">SPECIFICATION STATE</span>
+                <span class="block text-emerald-500 font-bold uppercase">RELEASE ACTIVE</span>
+            </div>
+        </div>
+    </div>
+    """
+
+    # Page 2: Table of Contents & Purpose
+    page_2_contents = f"""
+    <div class="print-page print-page-shadow bg-white text-slate-900 p-12 md:p-16 rounded-sm aspect-[1/1.414] min-h-[1050px] flex flex-col justify-between border border-slate-200">
+        <div class="border-b border-slate-100 pb-4 flex justify-between items-end">
+            <div>
+                <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">TABLE OF CONTENTS</span>
+                <h2 class="text-base font-bold text-slate-800 uppercase tracking-tight brand-header-font">Index & Statement of Purpose</h2>
+            </div>
+            <span class="text-[10px] font-mono text-slate-400 font-bold uppercase">{brand["companyName"]}</span>
+        </div>
+        
+        <div class="my-auto space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+                <div class="md:col-span-7 space-y-4 pr-4 border-r border-slate-100">
+                    <span class="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Statement of Purpose</span>
+                    <p class="text-xs text-slate-600 leading-relaxed font-sans">
+                        This document codifies the core elements of the brand's identity system. It defines the positioning statements, color palette benchmarks, typography setups, and logo designs required to scale the organization with high creative integrity.
+                    </p>
+                    <p class="text-xs text-slate-600 leading-relaxed font-sans mt-2">
+                        Consistency across these guidelines ensures that all marketing collateral, web products, packaging, and digital assets project a cohesive, professional market presence.
+                    </p>
+                </div>
+                
+                <div class="md:col-span-5 space-y-4">
+                    <span class="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Document Structure</span>
+                    <ul class="space-y-3 font-mono text-[10px] text-slate-700">
+                        <li class="flex justify-between border-b border-slate-100 pb-1">
+                            <span>01 COVER PAGE</span>
+                            <span class="text-slate-400">P. 01</span>
+                        </li>
+                        <li class="flex justify-between border-b border-slate-100 pb-1">
+                            <span>02 INDEX & PURPOSE</span>
+                            <span class="text-slate-400">P. 02</span>
+                        </li>
+                        <li class="flex justify-between border-b border-slate-100 pb-1">
+                            <span>03 STRATEGY BLUEPRINT</span>
+                            <span class="text-slate-400">P. 03</span>
+                        </li>
+                        <li class="flex justify-between border-b border-slate-100 pb-1">
+                            <span>04 COLOR SWATCH SYSTEM</span>
+                            <span class="text-slate-400">P. 04</span>
+                        </li>
+                        <li class="flex justify-between border-b border-slate-100 pb-1">
+                            <span>05 TYPOGRAPHY BOARD</span>
+                            <span class="text-slate-400">P. 05</span>
+                        </li>
+                        <li class="flex justify-between border-b border-slate-100 pb-1">
+                            <span>06 LOGO EMBLEMS</span>
+                            <span class="text-slate-400">P. 06</span>
+                        </li>
+                        <li class="flex justify-between border-b border-slate-100 pb-1">
+                            <span>07 DIGITAL ACTIVATION</span>
+                            <span class="text-slate-400">P. 07</span>
+                        </li>
+                        <li class="flex justify-between border-b border-slate-100 pb-1">
+                            <span>08 STRATEGIC AUDIT</span>
+                            <span class="text-slate-400">P. 08</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex justify-between items-center text-[9px] font-mono text-slate-400 pt-4 border-t border-slate-100">
+            <span>OFFICIAL DESIGN DOCUMENT</span>
+            <span>PAGE 02 OF 08</span>
+        </div>
+    </div>
+    """
+
+    # Page 3: Strategic Identity Blueprint
+    kw_html = "".join([f'<span class="px-2.5 py-1 bg-slate-50 border border-slate-200 text-slate-800 font-mono font-bold uppercase text-[9px] rounded-sm tracking-wide">{k}</span>' for k in brand["brandKeywords"]])
+    page_3_blueprint = f"""
+    <div class="print-page print-page-shadow bg-white text-slate-900 p-12 md:p-16 rounded-sm aspect-[1/1.414] min-h-[1050px] flex flex-col justify-between border border-slate-200">
+        <div class="border-b border-slate-100 pb-4 flex justify-between items-end">
+            <div>
+                <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">GUIDELINE PART 01</span>
+                <h2 class="text-base font-bold text-slate-800 uppercase tracking-tight brand-header-font">Strategic Identity Blueprint</h2>
+            </div>
+            <span class="text-[10px] font-mono text-slate-400 font-bold uppercase">{brand["companyName"]}</span>
+        </div>
+        
+        <div class="my-auto space-y-8">
+            <div class="space-y-1.5">
+                <span class="text-[9px] font-mono text-slate-400 uppercase tracking-wider block">01.1 Core Mission Statement</span>
+                <div class="bg-slate-50 border border-slate-200 p-5 rounded-sm relative">
+                    <span class="absolute top-2 left-3 text-2xl text-slate-200 font-serif leading-none">&ldquo;</span>
+                    <p class="text-xs text-slate-700 italic font-medium leading-relaxed pl-4 pr-2 brand-body-font">{brand["mission"]}</p>
+                    <span class="absolute bottom-1 right-3 text-2xl text-slate-200 font-serif leading-none">&rdquo;</span>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-1.5">
+                    <span class="text-[9px] font-mono text-slate-400 uppercase tracking-wider block">01.2 Defined Target Audience</span>
+                    <div class="bg-slate-50 border border-slate-100 p-4 rounded-sm min-h-[100px]">
+                        <p class="text-xs text-slate-600 leading-relaxed font-sans">{brand["targetAudience"]}</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-1.5">
+                    <span class="text-[9px] font-mono text-slate-400 uppercase tracking-wider block">01.3 Brand Personality DNA Traits</span>
+                    <div class="bg-slate-50 border border-slate-100 p-4 rounded-sm min-h-[100px] flex flex-wrap gap-2 items-center">
+                        {kw_html}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="space-y-1.5">
+                <span class="text-[9px] font-mono text-slate-400 uppercase tracking-wider block">01.4 Brand Positioning & Value Proposition</span>
+                <div class="bg-slate-50 border border-slate-100 p-5 rounded-sm">
+                    <p class="text-xs text-slate-600 leading-relaxed font-sans">{brand["positioningStatement"]}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex justify-between items-center text-[9px] font-mono text-slate-400 pt-4 border-t border-slate-100">
+            <span>OFFICIAL DESIGN DOCUMENT</span>
+            <span>PAGE 03 OF 08</span>
+        </div>
+    </div>
+    """
+
+    # Page 4: Color Swatch System
+    swatches_html = ""
+    for idx, color in enumerate(brand["colors"]):
+        swatches_html += f"""
+        <div class="flex items-center space-x-4 border-b border-slate-100 pb-3">
+            <div class="w-16 h-16 rounded-sm shadow-inner border border-slate-200 shrink-0" style="background-color: {color["hex"]}"></div>
+            <div class="space-y-1 min-w-0 flex-1">
+                <div class="flex justify-between items-baseline">
+                    <h4 class="text-xs font-bold text-slate-800 truncate">{color["name"]}</h4>
+                    <span class="text-[9px] font-mono font-bold text-slate-700 uppercase">{color["hex"]}</span>
+                </div>
+                <span class="text-[8px] font-mono text-slate-400 block uppercase">Swatch 0{idx+1} • {color["role"]}</span>
+                <p class="text-[10px] text-slate-500 leading-relaxed truncate font-sans">{color["usage"]}</p>
+            </div>
+        </div>
+        """
+        
+    page_4_colors = f"""
+    <div class="print-page print-page-shadow bg-white text-slate-900 p-12 md:p-16 rounded-sm aspect-[1/1.414] min-h-[1050px] flex flex-col justify-between border border-slate-200">
+        <div class="border-b border-slate-100 pb-4 flex justify-between items-end">
+            <div>
+                <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">GUIDELINE PART 02</span>
+                <h2 class="text-base font-bold text-slate-800 uppercase tracking-tight brand-header-font">Cohesive Color Swatch System</h2>
+            </div>
+            <span class="text-[10px] font-mono text-slate-400 font-bold uppercase">{brand["companyName"]}</span>
+        </div>
+        
+        <div class="my-auto space-y-6">
+            <span class="text-[9px] font-mono text-slate-400 uppercase tracking-wider block border-b border-slate-100 pb-1">02.1 Dynamic Color Matrix & Rules</span>
+            <div class="space-y-4">
+                {swatches_html}
+            </div>
+        </div>
+        
+        <div class="flex justify-between items-center text-[9px] font-mono text-slate-400 pt-4 border-t border-slate-100">
+            <span>OFFICIAL DESIGN DOCUMENT</span>
+            <span>PAGE 04 OF 08</span>
+        </div>
+    </div>
+    """
+
+    # Page 5: Typographic Hierarchy Board
+    page_5_typography = f"""
+    <div class="print-page print-page-shadow bg-white text-slate-900 p-12 md:p-16 rounded-sm aspect-[1/1.414] min-h-[1050px] flex flex-col justify-between border border-slate-200">
+        <div class="border-b border-slate-100 pb-4 flex justify-between items-end">
+            <div>
+                <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">GUIDELINE PART 03</span>
+                <h2 class="text-base font-bold text-slate-800 uppercase tracking-tight brand-header-font">Typographic Hierarchy Board</h2>
+            </div>
+            <span class="text-[10px] font-mono text-slate-400 font-bold uppercase">{brand["companyName"]}</span>
+        </div>
+        
+        <div class="my-auto space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Header font -->
+                <div class="border border-slate-200 p-4 rounded-sm space-y-3">
+                    <span class="text-[8px] font-mono text-slate-400 uppercase block">PRIMARY DISPLAY HEADER</span>
+                    <div class="py-2 text-center border-b border-slate-100">
+                        <h4 class="text-lg font-bold brand-header-font text-slate-800">{fonts["headerFont"]}</h4>
+                        <span class="text-[9px] text-slate-400 font-mono uppercase block mt-1">{fonts["headerFontCategory"]} CATEGORY</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 leading-normal">{fonts["headerUsage"]}</p>
+                </div>
+                
+                <!-- Body font -->
+                <div class="border border-slate-200 p-4 rounded-sm space-y-3">
+                    <span class="text-[8px] font-mono text-slate-400 uppercase block">PRIMARY BODY COPY</span>
+                    <div class="py-2 text-center border-b border-slate-100">
+                        <p class="text-sm text-slate-800 font-medium brand-body-font">{fonts["bodyFont"]}</p>
+                        <span class="text-[9px] text-slate-400 font-mono uppercase block mt-1">{fonts["bodyFontCategory"]} CATEGORY</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 leading-normal">{fonts["bodyUsage"]}</p>
+                </div>
+            </div>
+            
+            <div class="bg-slate-50 border border-slate-200 p-5 rounded-sm space-y-2">
+                <span class="text-[8px] font-mono text-slate-400 uppercase block">03.3 Typographic Psychology & Rationale</span>
+                <p class="text-xs text-slate-600 leading-relaxed font-sans">{fonts["fontRationale"]}</p>
+            </div>
+        </div>
+        
+        <div class="flex justify-between items-center text-[9px] font-mono text-slate-400 pt-4 border-t border-slate-100">
+            <span>OFFICIAL DESIGN DOCUMENT</span>
+            <span>PAGE 05 OF 08</span>
+        </div>
+    </div>
+    """
+
+    # Page 6: Logo Emblem Systems
+    if brand.get("primaryLogoUrl"):
+        p_logo_el = f'<img src="{brand["primaryLogoUrl"]}" alt="Primary Logo" class="max-w-[80%] max-h-[80%] object-contain" referrerPolicy="no-referrer" />'
+    else:
+        p_logo_el = f'<div class="w-full h-full flex items-center justify-center scale-90">{logos["placeholderPrimarySvg"]}</div>'
+        
+    if brand.get("secondaryLogoUrl"):
+        s_logo_el = f'<img src="{brand["secondaryLogoUrl"]}" alt="Secondary Logo" class="max-w-[80%] max-h-[80%] object-contain" referrerPolicy="no-referrer" />'
+    else:
+        s_logo_el = f'<div class="w-full h-full flex items-center justify-center scale-90">{logos["placeholderSecondarySvg"]}</div>'
+
+    page_6_logos = f"""
+    <div class="print-page print-page-shadow bg-white text-slate-900 p-12 md:p-16 rounded-sm aspect-[1/1.414] min-h-[1050px] flex flex-col justify-between border border-slate-200">
+        <div class="border-b border-slate-100 pb-4 flex justify-between items-end">
+            <div>
+                <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">GUIDELINE PART 04</span>
+                <h2 class="text-base font-bold text-slate-800 uppercase tracking-tight brand-header-font">Logo & Emblem Systems</h2>
+            </div>
+            <span class="text-[10px] font-mono text-slate-400 font-bold uppercase">{brand["companyName"]}</span>
+        </div>
+        
+        <div class="my-auto space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Primary Logo Concept -->
+                <div class="border border-slate-200 p-4 rounded-sm space-y-3">
+                    <span class="text-[8px] font-mono text-slate-400 uppercase block">04.1 Primary Logo Concept</span>
+                    <div class="aspect-square w-full rounded-sm bg-slate-50 border border-slate-100 flex items-center justify-center p-4 relative overflow-hidden">
+                        {p_logo_el}
+                    </div>
+                    <p class="text-[10px] text-slate-600 leading-normal">{logos["primaryLogoConcept"]}</p>
+                </div>
+                
+                <!-- Secondary Submark Concept -->
+                <div class="border border-slate-200 p-4 rounded-sm space-y-3">
+                    <span class="text-[8px] font-mono text-slate-400 uppercase block">04.2 Secondary Submark Emblem</span>
+                    <div class="aspect-square w-full rounded-sm bg-slate-50 border border-slate-100 flex items-center justify-center p-4 relative overflow-hidden">
+                        {s_logo_el}
+                    </div>
+                    <p class="text-[10px] text-slate-600 leading-normal">{logos["secondaryLogoConcept"]}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex justify-between items-center text-[9px] font-mono text-slate-400 pt-4 border-t border-slate-100">
+            <span>OFFICIAL DESIGN DOCUMENT</span>
+            <span>PAGE 06 OF 08</span>
+        </div>
+    </div>
+    """
+
+    # Page 7: Digital Scalability & Activation
+    colors = brand["colors"]
+    secondary_color = colors[1] if len(colors) > 1 else colors[0]
+    bg_color = colors[3] if len(colors) > 3 else {"hex": "#FAFAFA", "name": "Soft Off-White"}
+
+    page_7_activation = f"""
+    <div class="print-page print-page-shadow bg-white text-slate-900 p-12 md:p-16 rounded-sm aspect-[1/1.414] min-h-[1050px] flex flex-col justify-between border border-slate-200">
+        <div class="border-b border-slate-100 pb-4 flex justify-between items-end">
+            <div>
+                <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">GUIDELINE PART 05</span>
+                <h2 class="text-base font-bold text-slate-800 uppercase tracking-tight brand-header-font">Digital Scalability & Activation</h2>
+            </div>
+            <span class="text-[10px] font-mono text-slate-400 font-bold uppercase">{brand["companyName"]}</span>
+        </div>
+        
+        <div class="my-auto space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Scalability pictures -->
+                <div class="border border-slate-200 p-4 rounded-sm space-y-3">
+                    <span class="text-[8px] font-mono text-slate-400 uppercase block">05.1 Scaling & Badge Previews</span>
+                    <div class="flex items-center justify-around py-4 border border-slate-100 bg-slate-50 rounded-sm">
+                        <div class="w-16 h-16 rounded-full bg-white border border-slate-200 flex items-center justify-center p-2.5 overflow-hidden shadow-inner">
+                            {s_logo_el}
+                        </div>
+                        <div class="w-12 h-12 rounded-sm bg-white border border-slate-200 flex items-center justify-center p-2 overflow-hidden shadow-inner">
+                            {s_logo_el}
+                        </div>
+                        <div class="w-8 h-8 rounded-sm bg-white border border-slate-200 flex items-center justify-center p-1 overflow-hidden shadow-inner">
+                            {s_logo_el}
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-slate-500 leading-normal">
+                        Verify badge visibility across multiple responsive viewport heights, browser favicons, slack badges, and mobile home screen app launcher nodes.
+                    </p>
+                </div>
+                
+                <!-- Outdoor format billboard -->
+                <div class="border border-slate-200 p-4 rounded-sm space-y-3">
+                    <span class="text-[8px] font-mono text-slate-400 uppercase block">05.2 Out-of-Home Outdoor Billboard Format</span>
+                    <div class="w-full aspect-[21/9] rounded-sm text-white flex flex-col justify-between p-4 overflow-hidden relative shadow" style="background-color: {secondary_color["hex"]}">
+                        <div class="text-[6px] uppercase font-mono tracking-widest opacity-60">OUTDOOR AD TESTING FORMAT</div>
+                        <div class="text-center py-1">
+                            <h3 class="text-xs font-bold leading-none uppercase brand-header-font" style="color: {bg_color["hex"]}">&ldquo;{brand["tagline"]}&rdquo;</h3>
+                        </div>
+                        <div class="flex items-center justify-between border-t border-white/10 pt-1">
+                            <span class="text-[7px] font-bold brand-header-font" style="color: {bg_color["hex"]}">{brand["companyName"]}</span>
+                            <div class="w-4 h-4 flex items-center justify-center p-0.5 bg-white/10 rounded-sm">
+                                {s_logo_el}
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-slate-500 leading-normal">
+                        Demonstrating 500-yard read-speed. Outdoor format placements force immediate attention, minimal reading friction, and instant brand identification.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex justify-between items-center text-[9px] font-mono text-slate-400 pt-4 border-t border-slate-100">
+            <span>OFFICIAL DESIGN DOCUMENT</span>
+            <span>PAGE 07 OF 08</span>
+        </div>
+    </div>
+    """
+
+    # Page 8: Strategic Stress-Test Audit
+    challenge = brand.get("challengeReport")
+    if challenge:
+        pit_html = ""
+        for pit in challenge["pitfalls"][:3]:
+            pit_html += f"""
+            <div class="bg-slate-50 border border-slate-100 p-3 rounded-sm space-y-0.5">
+                <span class="text-[10px] font-bold text-red-600 font-mono uppercase block">⚠️ {pit["title"]}</span>
+                <p class="text-[9px] text-slate-600 leading-normal">{pit["description"]}</p>
+            </div>
+            """
+            
+        questions_html = ""
+        for q_idx, q in enumerate(challenge["hardQuestions"][:3]):
+            questions_html += f"""
+            <li class="text-[10px] text-slate-600 leading-normal list-decimal ml-4 pl-0.5">
+                <span class="font-sans text-slate-700">{q}</span>
+            </li>
+            """
+            
+        challenge_content = f"""
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-4">
+                <div class="space-y-1.5">
+                    <span class="text-[9px] font-mono text-slate-400 uppercase tracking-wider block">06.1 Critical Assumption Pitfalls</span>
+                    <div class="space-y-2">{pit_html}</div>
+                </div>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="space-y-1.5">
+                    <span class="text-[9px] font-mono text-slate-400 uppercase tracking-wider block">06.2 Tough Questions to Resolve</span>
+                    <ul class="space-y-2">{questions_html}</ul>
+                </div>
+                
+                <div class="space-y-1.5 pt-2 border-t border-slate-100">
+                    <span class="text-[9px] font-mono text-slate-400 uppercase tracking-wider block">06.3 Suggested Pivots & Action Plan</span>
+                    <p class="text-[10px] text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-sm border border-slate-100">{challenge["refinementPivots"]}</p>
+                </div>
+            </div>
+        </div>
+        """
+    else:
+        challenge_content = f"""
+        <div class="bg-slate-50 border border-slate-200 p-6 rounded-sm text-center space-y-4 my-auto">
+            <div class="w-12 h-12 rounded-full bg-amber-50 text-amber-500 border border-amber-200 flex items-center justify-center mx-auto">
+                <i data-lucide="shield-alert" class="w-6 h-6"></i>
+            </div>
+            <div class="space-y-1">
+                <h4 class="text-xs font-bold uppercase tracking-wide text-slate-800">Stress-Test Audit Spec Pending Active Run</h4>
+                <p class="text-[11px] text-slate-500 max-w-md mx-auto">
+                    The Devil\'s Advocate strategic stress-test audit has not been generated for this brand yet. Return to the interactive screen dashboard, navigate to "06 Stress Audit", and click "Challenge Brand Identity" to generate a live market vulnerability report.
+                </p>
+            </div>
+            <div class="text-[9px] font-mono text-slate-400 uppercase tracking-wider bg-white py-1.5 px-3 border border-slate-100 inline-block rounded-sm">
+                Awaiting active synthesis trigger
+            </div>
+        </div>
+        """
+
+    page_8_audit = f"""
+    <div class="print-page print-page-shadow bg-white text-slate-900 p-12 md:p-16 rounded-sm aspect-[1/1.414] min-h-[1050px] flex flex-col justify-between border border-slate-200">
+        <div class="border-b border-slate-100 pb-4 flex justify-between items-end">
+            <div>
+                <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">GUIDELINE PART 06</span>
+                <h2 class="text-base font-bold text-slate-800 uppercase tracking-tight brand-header-font">Devil\'s Advocate Stress-Test Audit</h2>
+            </div>
+            <span class="text-[10px] font-mono text-slate-400 font-bold uppercase">{brand["companyName"]}</span>
+        </div>
+        
+        <div class="my-auto space-y-6">
+            {challenge_content}
+        </div>
+        
+        <div class="flex justify-between items-center text-[9px] font-mono text-slate-400 pt-4 border-t border-slate-100">
+            <span>OFFICIAL DESIGN DOCUMENT</span>
+            <span>PAGE 08 OF 08</span>
+        </div>
+    </div>
+    """
+
+    return f"""
+    <div class="space-y-8 print:space-y-0 print:m-0 print:p-0">
+        {page_1_cover}
+        {page_2_contents}
+        {page_3_blueprint}
+        {page_4_colors}
+        {page_5_typography}
+        {page_6_logos}
+        {page_7_activation}
+        {page_8_audit}
+    </div>
+    """
+
+def toggle_print_layout_mode(ev=None):
+    brand = state["current_brand"]
+    if not brand: return
+    
+    state["print_mode_active"] = not state["print_mode_active"]
+    
+    if state["print_mode_active"]:
+        # Prepare print document HTML
+        doc_html = generate_print_document_html(brand)
+        document["print-bible-document"].innerHTML = doc_html
+        
+        # Hide standard viewport layout
+        document["global-header"].classList.add("hidden")
+        document["main-app-container"].classList.add("hidden")
+        
+        # Show print layout viewports
+        document["print-view-viewport"].classList.remove("hidden")
+        document["print-control-bar"].classList.remove("hidden")
+        
+        # Trigger Lucide icons inside print document
+        window.lucide.createIcons()
+    else:
+        # Hide print layout viewports
+        document["print-view-viewport"].classList.add("hidden")
+        document["print-control-bar"].classList.add("hidden")
+        
+        # Re-show standard viewport layout
+        document["global-header"].classList.remove("hidden")
+        document["main-app-container"].classList.remove("hidden")
+        
+        # Refresh current active tab
+        render_active_tab()
+
+def download_brand_bible_pdf(ev=None):
+    brand = state["current_brand"]
+    if not brand: return
+    
+    # Force enter print layout mode if not already in it
+    was_already_in_print_mode = state["print_mode_active"]
+    if not was_already_in_print_mode:
+        state["print_mode_active"] = True
+        doc_html = generate_print_document_html(brand)
+        document["print-bible-document"].innerHTML = doc_html
+        document["global-header"].classList.add("hidden")
+        document["main-app-container"].classList.add("hidden")
+        document["print-view-viewport"].classList.remove("hidden")
+        document["print-control-bar"].classList.remove("hidden")
+        window.lucide.createIcons()
+        
+    def run_print():
+        window.print()
+        if not was_already_in_print_mode:
+            state["print_mode_active"] = False
+            document["print-view-viewport"].classList.add("hidden")
+            document["print-control-bar"].classList.add("hidden")
+            document["global-header"].classList.remove("hidden")
+            document["main-app-container"].classList.remove("hidden")
+            render_active_tab()
+            
+    window.setTimeout(run_print, 150)
+
+# Bind print elements
+document["header-btn-print-toggle"].bind("click", toggle_print_layout_mode)
+document["header-btn-download-pdf"].bind("click", download_brand_bible_pdf)
+document["print-bar-btn-download"].bind("click", lambda ev: window.print())
+document["print-bar-btn-close"].bind("click", toggle_print_layout_mode)
+
+
+# --- WORKSPACE INITIALIZATION ---
+def init_workspace():
+    update_clock()
+    render_tags()
+    render_saved_library()
+    
+    # Check if we have a portable shared deeplink
+    search_params = window.URLSearchParams.new(window.location.search)
+    share_payload = search_params.get("share")
+    shared_brand = None
+    
+    if share_payload:
+        try:
+            # Decode the portable deeplink
+            json_bytes = base64.urlsafe_b64decode(share_payload.encode("utf-8"))
+            json_str = json_bytes.decode("utf-8")
+            shared_brand = json.loads(json_str)
+        except Exception as err:
+            window.alert(f"Failed to load shared brand bible: {str(err)}")
+            
+    if shared_brand:
+        # Save shared brand to local workspace library automatically so they don't lose it
+        save_brand_to_storage(shared_brand)
+        render_saved_library()
+        load_brand_into_workspace(shared_brand)
+        
+        # Clear URL search parameter so subsequent page refreshes don't double-trigger
+        window.history.replaceState({}, "", window.location.pathname)
+        
+        window.alert(f"Success! Loaded Shared Brand Bible: '{shared_brand['companyName']}'! It has been imported and successfully saved to your local library.")
+    else:
+        # Check if there is already a generated brand bible in local storage, if so load the first one automatically
+        library = get_stored_brands()
+        if library:
+            load_brand_into_workspace(library[0])
+        
+    window.lucide.createIcons()
+
+init_workspace()
+    </script>
+
+    <!-- Share Brand Modal -->
+    <div id="share-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+      <div class="bg-white border border-slate-200 rounded-sm w-full max-w-lg shadow-2xl overflow-hidden flex flex-col animate-fade-in">
+        <!-- Modal Header -->
+        <div class="bg-slate-950 text-white p-4 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="share-2" class="w-4 h-4 text-amber-500"></i>
+            <h3 class="text-xs font-bold uppercase tracking-wider font-display">Share Brand Bible</h3>
+          </div>
+          <button id="share-modal-close" class="text-slate-400 hover:text-white transition font-mono text-lg font-bold">&times;</button>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="p-6 space-y-4">
+          <p class="text-xs text-slate-500 leading-relaxed">
+            Generate a unique, portable link to share this entire **Brand Identity DNA Bible** with colleagues, clients, or teammates. All fonts, color hexes, and strategist notes are compiled dynamically.
+          </p>
+          
+          <div class="space-y-1.5">
+            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider font-mono">Your Shareable Link</span>
+            <div class="flex space-x-2">
+              <input type="text" id="share-url-input" readonly class="flex-1 text-xs px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-sm focus:outline-none focus:border-slate-800 font-mono text-slate-600 select-all" />
+              <button id="btn-copy-share-url" class="px-4 bg-slate-950 hover:bg-slate-800 text-white font-mono text-xs font-bold uppercase rounded-sm transition shadow flex items-center justify-center space-x-1.5">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                <span>COPY</span>
+              </button>
+            </div>
+          </div>
+          
+          <div class="bg-slate-50 p-3 rounded-sm border border-slate-200 text-[10px] text-slate-500 font-mono leading-relaxed space-y-1">
+            <span class="font-bold text-slate-700 block uppercase">💡 PORTABLE DEEPLINK</span>
+            <p>This link encodes your brand's unique identity DNA in a URL-safe Base64 payload. Teammates can load, view, and save this brand bible instantly into their own library workspace without needing to register or setup any databases.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </body>
+</html>
